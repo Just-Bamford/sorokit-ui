@@ -6,8 +6,8 @@ import { cn } from "../lib/utils";
 
 interface Props {
   children: ReactNode;
-  /** Custom fallback UI. Receives the error and a reset callback. */
-  fallback?: (error: Error, reset: () => void) => ReactNode;
+  /** Custom fallback UI. Receives the error, a reset callback, and the current retry count. */
+  fallback?: (error: Error, reset: () => void, retryCount: number) => ReactNode;
   /** Called when the boundary catches an error. */
   onError?: (error: Error, info: ErrorInfo) => void;
   /**
@@ -21,16 +21,19 @@ interface Props {
   isolate?: boolean;
   /** Optional support URL shown in the default fallback. */
   supportUrl?: string;
+  /** Maximum number of times reset() can be called before hiding the Try again button. */
+  maxRetries?: number;
 }
 
 interface State {
   error: Error | null;
   resetKey: number;
   componentStack: string | null;
+  retryCount: number;
 }
 
 export class ErrorBoundary extends Component<Props, State> {
-  state: State = { error: null, resetKey: 0, componentStack: null };
+  state: State = { error: null, resetKey: 0, componentStack: null, retryCount: 0 };
 
   static getDerivedStateFromError(error: Error): Partial<State> {
     return { error };
@@ -57,17 +60,18 @@ export class ErrorBoundary extends Component<Props, State> {
       error: null,
       resetKey: state.resetKey + 1,
       componentStack: null,
+      retryCount: state.retryCount + 1,
     }));
   };
 
   render() {
-    const { error, resetKey, componentStack } = this.state;
-    const { children, fallback, isolate, supportUrl } = this.props;
+    const { error, resetKey, componentStack, retryCount } = this.state;
+    const { children, fallback, isolate, supportUrl, maxRetries = 3 } = this.props;
 
     if (!error) return <div key={resetKey}>{children}</div>;
 
     if (fallback) {
-      const fallbackNode = fallback(error, this.reset);
+      const fallbackNode = fallback(error, this.reset, retryCount);
 
       return isolate ? (
         <div
@@ -139,18 +143,20 @@ export class ErrorBoundary extends Component<Props, State> {
             </details>
           )}
           <div className="flex items-center gap-3">
-            <button
-              onClick={this.reset}
-              className="inline-flex items-center gap-2 h-9 px-4 rounded-lg bg-surface-2 border border-line hover:border-line-2 text-[13px] text-ink-2 transition-colors cursor-pointer"
-            >
-              <HugeiconsIcon
-                icon={Refresh01Icon}
-                size={14}
-                color="currentColor"
-                strokeWidth={1.5}
-              />
-              Try again
-            </button>
+            {retryCount < maxRetries && (
+              <button
+                onClick={this.reset}
+                className="inline-flex items-center gap-2 h-9 px-4 rounded-lg bg-surface-2 border border-line hover:border-line-2 text-[13px] text-ink-2 transition-colors cursor-pointer"
+              >
+                <HugeiconsIcon
+                  icon={Refresh01Icon}
+                  size={14}
+                  color="currentColor"
+                  strokeWidth={1.5}
+                />
+                Try again
+              </button>
+            )}
             <button
               onClick={() => window.location.reload()}
               className="inline-flex items-center gap-2 h-9 px-4 rounded-lg bg-brand text-white text-[13px] font-medium hover:bg-brand-hover transition-colors cursor-pointer"
