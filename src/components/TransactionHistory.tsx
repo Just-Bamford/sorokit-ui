@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/Button";
 import { useSorokit } from "@/context/useSorokit";
 import type { Transaction } from "@/lib/client";
 import { getClient } from "@/lib/client";
-import { cn, truncateAddress } from "@/lib/utils";
+import { cn, getExplorerUrl, truncateAddress } from "@/lib/utils";
 
 const PAGE_SIZE = 10;
 const MEMO_TRUNCATE_LENGTH = 20;
@@ -123,20 +123,6 @@ function truncateMemo(memo: string): string {
     : memo;
 }
 
-function explorerTxUrl(
-  networkName: string | undefined,
-  hash: string,
-): string | null {
-  const segment =
-    networkName === "mainnet"
-      ? "public"
-      : networkName === "testnet"
-        ? "testnet"
-        : null;
-  if (!segment) return null;
-  return `https://stellar.expert/explorer/${segment}/tx/${hash}`;
-}
-
 export function TxRow({
   tx,
   networkName,
@@ -154,7 +140,7 @@ export function TxRow({
     day: "numeric",
   });
 
-  const explorerUrl = explorerTxUrl(networkName, tx.hash);
+  const explorerUrl = getExplorerUrl(networkName, tx.hash);
 
   const RowWrapper = explorerUrl ? "a" : "div";
   const wrapperProps = explorerUrl

@@ -1,5 +1,5 @@
 import { Slot } from "@radix-ui/react-slot";
-import { forwardRef, type ReactNode, useState } from "react";
+import { forwardRef, type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 
 import { cn } from "@/lib/utils";
 
@@ -88,6 +88,36 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     const [armed, setArmed] = useState(false);
     const isInert = !!disabled || !!loading;
 
+    // ── loading width lock ──────────────────────────────────────────────
+    // When loading flips on, snapshot the button's rendered width so the
+    // layout stays stable even when the label text changes.
+    const elRef = useRef<HTMLButtonElement | HTMLAnchorElement | null>(null);
+    const [loadingWidth, setLoadingWidth] = useState<number | null>(null);
+    const prevLoading = useRef(loading);
+
+    useEffect(() => {
+      if (loading && !prevLoading.current && elRef.current) {
+        setLoadingWidth(elRef.current.offsetWidth);
+      } else if (!loading) {
+        setLoadingWidth(null);
+      }
+      prevLoading.current = loading;
+    }, [loading]);
+
+    const mergedRef = useCallback(
+      (node: HTMLButtonElement | HTMLAnchorElement | null) => {
+        elRef.current = node;
+        if (typeof ref === "function") {
+          (ref as (node: HTMLButtonElement | HTMLAnchorElement | null) => void)(node);
+        } else if (ref) {
+          (
+            ref as React.MutableRefObject<HTMLButtonElement | HTMLAnchorElement | null>
+          ).current = node;
+        }
+      },
+      [ref],
+    );
+
     const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
       if (isInert) {
         e.preventDefault();
@@ -163,10 +193,20 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       </>
     );
 
+    // Merge user style with the locked min-width so neither is lost.
+  const userStyle = props.style;
+  const mergedStyle =
+    loading && loadingWidth
+      ? ({ ...(userStyle as React.CSSProperties | undefined), minWidth: loadingWidth })
+      : userStyle;
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { style: _, ...restProps } = props;
+
     if (isLink) {
       return (
         <a
-          ref={ref as React.Ref<HTMLAnchorElement>}
+          ref={mergedRef}
           // Dropping href while inert keeps the link out of the tab order and
           // makes the disabled state real rather than cosmetic.
           href={isInert ? undefined : href}
@@ -175,9 +215,10 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
           aria-disabled={isInert || undefined}
           aria-busy={loading || undefined}
           className={classes}
+          style={mergedStyle}
           onClick={handleClick as unknown as React.MouseEventHandler<HTMLAnchorElement>}
           onBlur={handleBlur as unknown as React.FocusEventHandler<HTMLAnchorElement>}
-          {...(props as unknown as React.AnchorHTMLAttributes<HTMLAnchorElement>)}
+          {...(restProps as unknown as React.AnchorHTMLAttributes<HTMLAnchorElement>)}
         >
           {content}
         </a>
@@ -186,13 +227,14 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
 
     return (
       <Comp
-        ref={ref}
+        ref={mergedRef}
         disabled={disabled || loading}
         aria-busy={loading || undefined}
         className={classes}
+        style={mergedStyle}
         onClick={handleClick}
         onBlur={handleBlur}
-        {...props}
+        {...restProps}
       >
         {content}
       </Comp>

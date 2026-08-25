@@ -339,6 +339,75 @@ describe("Button — re-submission guard and spinner accessibility", () => {
   });
 });
 
+describe("Button — loading width lock", () => {
+  it("locks the button width when transitioning to loading so the layout does not jump", () => {
+    const { rerender, container } = render(
+      <Button>Connect Wallet</Button>,
+    );
+    const btn = container.querySelector("button")!;
+
+    // Simulate a known rendered width.
+    Object.defineProperty(btn, "offsetWidth", {
+      value: 140,
+      writable: true,
+    });
+
+    // Transition to loading with a longer label.
+    rerender(<Button loading>Connecting…</Button>);
+
+    const loadingBtn = container.querySelector("button")!;
+    expect(loadingBtn.style.minWidth).toBe("140px");
+  });
+
+  it("releases the width lock once loading ends", () => {
+    const { rerender, container } = render(
+      <Button loading>Connecting…</Button>,
+    );
+
+    // Transition out of loading.
+    rerender(<Button>Connect Wallet</Button>);
+
+    const btn = container.querySelector("button")!;
+    expect(btn.style.minWidth).toBe("");
+  });
+
+  it("merges the locked minWidth with any user-specified style", () => {
+    const { rerender, container } = render(
+      <Button style={{ color: "red" }}>Connect Wallet</Button>,
+    );
+    const btn = container.querySelector("button")!;
+
+    Object.defineProperty(btn, "offsetWidth", {
+      value: 140,
+      writable: true,
+    });
+
+    rerender(<Button loading style={{ color: "red" }}>Connecting…</Button>);
+
+    const loadingBtn = container.querySelector("button")!;
+    expect(loadingBtn.style.minWidth).toBe("140px");
+    expect(loadingBtn.style.color).toBe("red");
+  });
+
+  it("applies the width lock to all variants", () => {
+    for (const variant of ["primary", "secondary", "ghost", "destructive"] as const) {
+      const { rerender, container } = render(
+        <Button variant={variant}>Connect Wallet</Button>,
+      );
+      const btn = container.querySelector("button")!;
+
+      Object.defineProperty(btn, "offsetWidth", {
+        value: 140,
+        writable: true,
+      });
+
+      rerender(<Button variant={variant} loading>Connecting…</Button>);
+
+      expect(container.querySelector("button")!.style.minWidth).toBe("140px");
+    }
+  });
+});
+
 describe("ButtonGroup", () => {
   it("renders its children inside a group role", () => {
     render(
