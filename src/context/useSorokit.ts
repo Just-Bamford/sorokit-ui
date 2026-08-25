@@ -7,6 +7,7 @@ const safeDefaults: SorokitState = {
   walletName: null,
   isConnected: false,
   isConnecting: false,
+  isInitializing: false,
   isLoading: false,
   connectWallet: async () => {},
   disconnectWallet: async () => {},
@@ -18,6 +19,7 @@ const safeDefaults: SorokitState = {
   network: null,
   switchNetwork: async () => {},
   error: null,
+  errorHistory: [],
   clearError: () => {},
 };
 
