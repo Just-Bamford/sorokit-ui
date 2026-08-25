@@ -1,6 +1,6 @@
-import { describe, expect,it } from "vitest";
+import { describe, expect, it } from "vitest";
 
-import { truncateAddress } from "./utils";
+import { getExplorerUrl, truncateAddress } from "./utils";
 
 describe("truncateAddress", () => {
   it("truncates standard ASCII strings correctly", () => {
@@ -62,5 +62,42 @@ describe("truncateAddress", () => {
 
   it("handles null-like falsy input gracefully", () => {
     expect(truncateAddress("" as string)).toBe("");
+  });
+});
+
+describe("getExplorerUrl", () => {
+  const TX_HASH =
+    "abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890";
+
+  it("returns the mainnet Stellar Expert URL for mainnet", () => {
+    expect(getExplorerUrl("mainnet", TX_HASH)).toBe(
+      `https://stellar.expert/explorer/public/tx/${TX_HASH}`,
+    );
+  });
+
+  it("returns the testnet Stellar Expert URL for testnet", () => {
+    expect(getExplorerUrl("testnet", TX_HASH)).toBe(
+      `https://stellar.expert/explorer/testnet/tx/${TX_HASH}`,
+    );
+  });
+
+  it("returns null for futurenet (no Stellar Expert support)", () => {
+    expect(getExplorerUrl("futurenet", TX_HASH)).toBeNull();
+  });
+
+  it("returns null for localnet", () => {
+    expect(getExplorerUrl("localnet", TX_HASH)).toBeNull();
+  });
+
+  it("returns null for custom network names", () => {
+    expect(getExplorerUrl("customnet", TX_HASH)).toBeNull();
+  });
+
+  it("returns null when networkName is undefined", () => {
+    expect(getExplorerUrl(undefined, TX_HASH)).toBeNull();
+  });
+
+  it("returns null when networkName is null", () => {
+    expect(getExplorerUrl(null, TX_HASH)).toBeNull();
   });
 });

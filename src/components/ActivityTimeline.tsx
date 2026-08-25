@@ -7,6 +7,7 @@ import {
   Copy01Icon,
   FilterIcon,
   Search01Icon,
+  XCircleIcon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -16,7 +17,7 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { useSorokit } from "@/context/useSorokit";
 import { getClient, type GroupedTransaction, type Operation, type TimelineFilter, type TimelineGroup } from "@/lib/client";
-import { cn, truncateAddress } from "@/lib/utils";
+import { cn, getExplorerUrl, truncateAddress } from "@/lib/utils";
 
 const PAGE_SIZE = 10;
 const OPERATION_TYPES = [
@@ -47,18 +48,6 @@ function formatAmount(amount: string, asset: string): string {
   const num = parseFloat(amount);
   if (isNaN(num)) return `${amount} ${asset}`;
   return `${num.toFixed(4)} ${asset}`;
-}
-
-function explorerTxUrl(networkName: string | null, hash: string): string | null {
-  if (!networkName) return null;
-  const segment =
-    networkName === "mainnet"
-      ? "public"
-      : networkName === "testnet"
-        ? "testnet"
-        : null;
-  if (!segment) return null;
-  return `https://stellar.expert/explorer/${segment}/tx/${hash}`;
 }
 
 function OperationTypeIcon({ type }: { type: string }) {
@@ -360,7 +349,7 @@ export function ActivityTimeline({ className }: { className?: string }) {
             )}
             aria-label="Toggle filters"
           >
-            <HugeiconsIcon icon={Filter01Icon} size={13} strokeWidth={1.5} />
+            <HugeiconsIcon icon={FilterIcon} size={13} strokeWidth={1.5} />
             Filters
             {hasActiveFilters && <span className="w-1.5 h-1.5 rounded-full bg-brand" />}
           </button>
@@ -492,7 +481,7 @@ export function ActivityTimeline({ className }: { className?: string }) {
                   </div>
                 )}
                 {group.transactions.map((tx) => {
-                  const url = explorerTxUrl(network?.name ?? null, tx.hash);
+                  const url = getExplorerUrl(network?.name ?? null, tx.hash);
                   return (
                     <GroupedTxRow
                       key={tx.hash}
