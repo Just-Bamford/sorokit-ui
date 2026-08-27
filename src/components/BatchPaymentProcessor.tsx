@@ -369,7 +369,7 @@ export function BatchPaymentProcessor({ className, defaultAsset = "XLM" }: Batch
     } catch {
       /* ignore network errors during polling */
     }
-  }, [batchId, isPaused]);
+  }, [batchId, isPaused, client]);
 
   useEffect(() => {
     if (batchId && isProcessing) {
