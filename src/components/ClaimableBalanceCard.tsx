@@ -162,12 +162,14 @@ export function ClaimableBalanceCard({ confirmThreshold }: ClaimableBalanceCardP
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    let active = true;
     if (!address || !client) {
-      setLoading(false);
-      return;
+      setTimeout(() => {
+        if (active) setLoading(false);
+      }, 0);
+      return () => { active = false; };
     }
 
-    let active = true;
     const timerId = window.setTimeout(() => {
       setLoading(true);
       client

@@ -333,7 +333,7 @@ export function SorokitProvider({
 
   const value = useMemo(
     () => ({
-      client: clientRef.current,
+      client,
       address,
       walletName,
       isConnected: !!address,
