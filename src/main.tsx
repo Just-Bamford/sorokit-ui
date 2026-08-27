@@ -8,8 +8,14 @@ import { ErrorBoundary } from './components/ErrorBoundary'
 import type { SorokitClient } from './lib/client.ts'
 import { createMockClient } from './lib/mock-client'
 
-// Initialize mock client for development
-const createClient = (): SorokitClient => createMockClient() as SorokitClient
+const createClient = (): SorokitClient => {
+  try {
+    return createMockClient() as SorokitClient
+  } catch (err) {
+    document.getElementById('root')!.innerHTML = '<div>Failed to initialize Sorokit: ' +(err instanceof Error ? err.message : String(err)) + '</div>'
+    throw err
+  }
+}
 
 function Root() {
   const [client, setClient] = useState<SorokitClient>(createClient)
