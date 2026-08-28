@@ -256,17 +256,12 @@ export function BalanceList({
             </a>
           )}
         </div>
-      ) : (
         <div>
           {sorted.length > 0 && (
             <div>
               {sorted.map((b) => (
                 <AssetRow
-                  key={
-                    b.assetCode && b.assetIssuer
-                      ? b.assetCode + ":" + b.assetIssuer
-                      : b.asset + ":native"
-                  }
+                  key={balanceKey(b)}
                   b={b}
                   showIssuerSuffix={Boolean(
                     b.assetIssuer && (codeCounts.get(getAssetCode(b)) ?? 0) > 1,
@@ -286,11 +281,7 @@ export function BalanceList({
               </div>
               {sortedLp.map((b) => (
                 <AssetRow
-                  key={
-                    b.assetCode && b.assetIssuer
-                      ? b.assetCode + ":" + b.assetIssuer
-                      : b.asset + ":native"
-                  }
+                  key={balanceKey(b)}
                   b={b}
                   showIssuerSuffix={Boolean(
                     b.assetIssuer && (codeCounts.get(getAssetCode(b)) ?? 0) > 1,
@@ -302,7 +293,6 @@ export function BalanceList({
             </div>
           )}
         </div>
-      )}
     </div>
   );
 }
