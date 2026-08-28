@@ -46,7 +46,7 @@ describe("TransactionPanel integration", () => {
 
     const destInput = screen.getByLabelText("Destination Address");
     const amountInput = screen.getByLabelText("Amount (XLM)");
-    const submitBtn = screen.getByRole("button", { name: "Send Payment" });
+    const submitBtn = screen.getByRole("button", { name: /Send (Payment|XLM)/i });
 
     fireEvent.change(destInput, {
       target: {

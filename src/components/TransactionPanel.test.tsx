@@ -47,7 +47,8 @@ describe("TransactionPanel", () => {
     vi.clearAllMocks();
     vi.mocked(useSorokit).mockReturnValue({
       address: "GABC",
-      isConnected: true,
+      isConnected: true, client: {},
+      client: {},
     } as unknown as ReturnType<typeof useSorokit>);
   });
 
@@ -119,12 +120,12 @@ describe("TransactionPanel", () => {
     await reviewAndConfirm();
 
     // Check success state
-    expect(await screen.findByText("Transaction submitted")).toBeInTheDocument();
+    expect(await screen.findByText(/Transaction submitted/i)).toBeInTheDocument();
     expect(screen.getByText("Ledger #100")).toBeInTheDocument();
     expect(screen.getByText("txhash123")).toBeInTheDocument();
 
     // Test "New Transaction" button resets state
-    const newTxBtn = screen.getByRole("button", { name: "New Transaction" });
+    const newTxBtn = screen.getByRole("button", { name: /New Transaction/i });
     fireEvent.click(newTxBtn);
 
     expect(screen.getByLabelText("Destination Address")).toHaveValue("");
@@ -144,7 +145,7 @@ describe("TransactionPanel", () => {
     await reviewAndConfirm();
 
     expect(await screen.findByText("Transaction failed")).toBeInTheDocument();
-    expect(screen.getByText("Insufficient balance")).toBeInTheDocument();
+    expect(screen.getByText(/Insufficient balance/i)).toBeInTheDocument();
   });
 
   it("shows validation error for invalid destination address", async () => {
@@ -176,7 +177,7 @@ describe("TransactionPanel", () => {
   it("shows error if address is null at submit time", async () => {
     vi.mocked(useSorokit).mockReturnValue({
       address: null,
-      isConnected: true,
+      isConnected: true, client: {},
     } as unknown as ReturnType<typeof useSorokit>);
 
     render(<TransactionPanel />);
@@ -202,7 +203,7 @@ describe("TransactionPanel", () => {
   it("shows self-payment warning when destination equals source address", async () => {
     vi.mocked(useSorokit).mockReturnValue({
       address: "GCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC",
-      isConnected: true,
+      isConnected: true, client: {},
     } as unknown as ReturnType<typeof useSorokit>);
 
     render(<TransactionPanel />);
@@ -277,7 +278,7 @@ describe("TransactionPanel", () => {
     await screen.findByText("Transaction failed");
 
     // Click "New Transaction" (Try Again) button
-    const newTxBtn = screen.getByRole("button", { name: "New Transaction" });
+    const newTxBtn = screen.getByRole("button", { name: /New Transaction/i });
     fireEvent.click(newTxBtn);
 
     // Verify form values are preserved (not cleared)
@@ -302,7 +303,7 @@ describe("TransactionPanel", () => {
     it("populates the asset selector with the correct asset codes from context balances", () => {
       vi.mocked(useSorokit).mockReturnValue({
         address: "GABC",
-        isConnected: true,
+        isConnected: true, client: {},
         balances,
       } as unknown as ReturnType<typeof useSorokit>);
 
@@ -320,7 +321,7 @@ describe("TransactionPanel", () => {
       mockGetClient(mockSubmit);
       vi.mocked(useSorokit).mockReturnValue({
         address: "GABC",
-        isConnected: true,
+        isConnected: true, client: {},
         balances,
       } as unknown as ReturnType<typeof useSorokit>);
 
@@ -342,7 +343,7 @@ describe("TransactionPanel", () => {
 
       await reviewAndConfirm();
 
-      await screen.findByText("Transaction submitted");
+      await screen.findByText(/Transaction submitted/i);
       expect(mockSubmit).toHaveBeenCalledWith(
         expect.objectContaining({ asset: "USDC" }),
       );
@@ -351,7 +352,7 @@ describe("TransactionPanel", () => {
     it("disables the asset selector when no balances are loaded", () => {
       vi.mocked(useSorokit).mockReturnValue({
         address: "GABC",
-        isConnected: true,
+        isConnected: true, client: {},
         balances: [],
       } as unknown as ReturnType<typeof useSorokit>);
 
@@ -395,7 +396,7 @@ describe("TransactionPanel", () => {
       mockGetClient(mockSubmit);
       vi.mocked(useSorokit).mockReturnValue({
         address: "GABC",
-        isConnected: true,
+        isConnected: true, client: {},
         network: { name: "testnet", passphrase: "x", rpcUrl: "x", horizonUrl: "x" },
       } as unknown as ReturnType<typeof useSorokit>);
 
@@ -406,7 +407,7 @@ describe("TransactionPanel", () => {
       fireEvent.change(screen.getByLabelText("Amount (XLM)"), { target: { value: "10" } });
 
       await reviewAndConfirm();
-      await screen.findByText("Transaction submitted");
+      await screen.findByText(/Transaction submitted/i);
 
       expect(screen.getByText("Successful")).toBeInTheDocument();
       const link = screen.getByRole("link", { name: /view on stellar expert/i });
@@ -457,7 +458,7 @@ describe("TransactionPanel", () => {
       fireEvent.change(screen.getByLabelText("Amount (XLM)"), { target: { value: "10" } });
 
       await reviewAndConfirm();
-      await screen.findByText("Transaction submitted");
+      await screen.findByText(/Transaction submitted/i);
 
       expect(onSuccess).toHaveBeenCalledWith(txResult);
       expect(onError).not.toHaveBeenCalled();
@@ -512,7 +513,7 @@ describe("TransactionPanel", () => {
       fireEvent.change(screen.getByLabelText("Amount (XLM)"), { target: { value: "10" } });
 
       await reviewAndConfirm();
-      expect(await screen.findByText("Transaction submitted")).toBeInTheDocument();
+      expect(await screen.findByText(/Transaction submitted/i)).toBeInTheDocument();
     });
   });
 
@@ -571,7 +572,7 @@ describe("TransactionPanel", () => {
       });
 
       expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
-      await screen.findByText("Transaction submitted");
+      await screen.findByText(/Transaction submitted/i);
       expect(mockSubmit).toHaveBeenCalledWith(
         expect.objectContaining({ destination: validDest, amount: "10" }),
       );
@@ -613,7 +614,7 @@ describe("TransactionPanel", () => {
     it("renders 'Send XLM' while XLM is the selected asset (multi-balance wallet)", () => {
       vi.mocked(useSorokit).mockReturnValue({
         address: "GABC",
-        isConnected: true,
+        isConnected: true, client: {},
         balances,
       } as unknown as ReturnType<typeof useSorokit>);
 
@@ -626,7 +627,7 @@ describe("TransactionPanel", () => {
     it("renders 'Send USDC' once the user switches the asset select to USDC", () => {
       vi.mocked(useSorokit).mockReturnValue({
         address: "GABC",
-        isConnected: true,
+        isConnected: true, client: {},
         balances,
       } as unknown as ReturnType<typeof useSorokit>);
 

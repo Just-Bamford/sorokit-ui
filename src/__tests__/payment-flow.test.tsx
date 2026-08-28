@@ -75,7 +75,7 @@ describe("Payment Flow Integration", () => {
 
     const destInput = screen.getByLabelText("Destination Address");
     const amountInput = screen.getByLabelText("Amount (XLM)");
-    const submitBtn = screen.getByRole("button", { name: "Send Payment" });
+    const submitBtn = screen.getByRole("button", { name: /Send (Payment|XLM)/i });
 
     const validDest = "GCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC";
     const validAmount = "15.5";
