@@ -36,7 +36,7 @@
     "build": "vite build --config vite.lib.config.ts",
     "build:app": "vite build",
     "preview": "vite preview",
-    "test": "vitest run",
+    "test": "vitest --run",
     "test:watch": "vitest",
     "test:coverage": "vitest --coverage",
     "test:exports": "tsc -p tsconfig.test-exports.json",
