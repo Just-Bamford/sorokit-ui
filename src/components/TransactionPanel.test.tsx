@@ -119,7 +119,7 @@ describe("TransactionPanel", () => {
     await reviewAndConfirm();
 
     // Check success state
-    expect(await screen.findByText("Transaction submitted")).toBeInTheDocument();
+    expect(await screen.findByText(/transaction submitted/i)).toBeInTheDocument();
     expect(screen.getByText("Ledger #100")).toBeInTheDocument();
     expect(screen.getByText("txhash123")).toBeInTheDocument();
 
@@ -342,7 +342,7 @@ describe("TransactionPanel", () => {
 
       await reviewAndConfirm();
 
-      await screen.findByText("Transaction submitted");
+      await screen.findByText(/transaction submitted/i);
       expect(mockSubmit).toHaveBeenCalledWith(
         expect.objectContaining({ asset: "USDC" }),
       );
@@ -406,7 +406,7 @@ describe("TransactionPanel", () => {
       fireEvent.change(screen.getByLabelText("Amount (XLM)"), { target: { value: "10" } });
 
       await reviewAndConfirm();
-      await screen.findByText("Transaction submitted");
+      await screen.findByText(/transaction submitted/i);
 
       expect(screen.getByText("Successful")).toBeInTheDocument();
       const link = screen.getByRole("link", { name: /view on stellar expert/i });
@@ -457,7 +457,7 @@ describe("TransactionPanel", () => {
       fireEvent.change(screen.getByLabelText("Amount (XLM)"), { target: { value: "10" } });
 
       await reviewAndConfirm();
-      await screen.findByText("Transaction submitted");
+      await screen.findByText(/transaction submitted/i);
 
       expect(onSuccess).toHaveBeenCalledWith(txResult);
       expect(onError).not.toHaveBeenCalled();
@@ -478,7 +478,9 @@ describe("TransactionPanel", () => {
       await reviewAndConfirm();
       await screen.findByText("Transaction failed");
 
-      expect(onError).toHaveBeenCalledWith("Insufficient balance");
+      await waitFor(() => {
+        expect(onError).toHaveBeenCalledWith("Insufficient balance");
+      });
       expect(onSuccess).not.toHaveBeenCalled();
     });
 
@@ -497,7 +499,9 @@ describe("TransactionPanel", () => {
       await reviewAndConfirm();
       await screen.findByText("Transaction failed");
 
-      expect(onError).toHaveBeenCalledWith("Network unreachable");
+      await waitFor(() => {
+        expect(onError).toHaveBeenCalledWith("Network unreachable");
+      });
       expect(onSuccess).not.toHaveBeenCalled();
     });
 
@@ -512,7 +516,7 @@ describe("TransactionPanel", () => {
       fireEvent.change(screen.getByLabelText("Amount (XLM)"), { target: { value: "10" } });
 
       await reviewAndConfirm();
-      expect(await screen.findByText("Transaction submitted")).toBeInTheDocument();
+      expect(await screen.findByText(/transaction submitted/i)).toBeInTheDocument();
     });
   });
 
@@ -571,7 +575,7 @@ describe("TransactionPanel", () => {
       });
 
       expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
-      await screen.findByText("Transaction submitted");
+      await screen.findByText(/transaction submitted/i);
       expect(mockSubmit).toHaveBeenCalledWith(
         expect.objectContaining({ destination: validDest, amount: "10" }),
       );

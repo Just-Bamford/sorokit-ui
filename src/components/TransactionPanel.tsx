@@ -342,7 +342,7 @@ export function TransactionPanel({
               label="Asset"
               value={selectedAsset}
               onChange={(e) => setAsset(e.target.value)}
-              disabled={state === "loading" || isLoadingAccount}
+              disabled={state === "loading" || isLoadingAccount || assetOptions.length === 0}
             >
               {isLoadingAccount ? (
                 <option value="">Loading assets…</option>
