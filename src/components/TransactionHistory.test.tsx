@@ -44,6 +44,10 @@ describe("TransactionHistory", () => {
       address: ADDRESS,
       isConnected: true,
     } as unknown as ReturnType<typeof useSorokit>);
+    vi.mocked(getClient).mockReturnValue({
+      transaction: { getHistory: vi.fn().mockResolvedValue({ data: [], error: null, total: 0 }) },
+      operation: { getOperations: vi.fn().mockResolvedValue({ data: [], error: null }) },
+    } as unknown as SorokitClient);
   });
 
   afterEach(() => {
