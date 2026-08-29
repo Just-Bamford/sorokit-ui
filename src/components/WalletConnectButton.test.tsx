@@ -1,3 +1,4 @@
+import { getClient } from "@/lib/client";
 import { fireEvent,render, screen, waitFor } from "@testing-library/react";
 import { beforeEach,describe, expect, it, vi } from "vitest";
 
@@ -18,7 +19,8 @@ describe("WalletConnectButton", () => {
   });
 
   function mockUseSorokit(overrides: Partial<ReturnType<typeof useSorokit>> = {}) {
-    return {
+  return {
+    get client() { return getClient(); },
       address: null,
       isConnected: false,
       isConnecting: false,

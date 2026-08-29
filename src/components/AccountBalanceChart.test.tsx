@@ -1,3 +1,4 @@
+import { getClient } from "@/lib/client";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -34,7 +35,8 @@ describe("AccountBalanceChart", () => {
   });
 
   function mockUseSorokit(overrides: Partial<ReturnType<typeof useSorokit>> = {}) {
-    return {
+  return {
+    get client() { return getClient(); },
       address: null,
       isConnected: false,
       isConnecting: false,
