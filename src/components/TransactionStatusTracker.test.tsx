@@ -33,7 +33,8 @@ describe("TransactionStatusTracker", () => {
     vi.useFakeTimers();
     mockUseSorokit.mockReturnValue({
       network: { name: "testnet", rpcUrl: "", horizonUrl: "", passphrase: "" },
-    , get client() { return getClient(); }} as unknown as ReturnType<typeof useSorokit>);
+      get client() { return getClient(); }
+    } as unknown as ReturnType<typeof useSorokit>);
     Object.defineProperty(navigator, "clipboard", {
       value: { writeText: vi.fn().mockResolvedValue(undefined) },
       configurable: true,
