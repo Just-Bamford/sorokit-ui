@@ -14,6 +14,17 @@ function getAssetCode(balance: Balance) {
   return balance.assetType === "native" ? "XLM" : balance.assetCode ?? balance.asset;
 }
 
+/**
+ * Composite React key for a balance row: `asset` alone collides for two
+ * balances with the same code but different issuers (e.g. two USDC
+ * balances from different issuers), silently dropping re-renders and
+ * mixing up row state (issue #524). `assetIssuer` is undefined for native
+ * XLM and for liquidity-pool-share balances, hence the "native" fallback.
+ */
+export function balanceKey(balance: Balance): string {
+  return `${getAssetCode(balance)}-${balance.assetIssuer ?? "native"}`;
+}
+
 function compareBalances(a: Balance, b: Balance) {
   const aIsXlm = a.assetType === "native";
   const bIsXlm = b.assetType === "native";
@@ -52,10 +63,12 @@ const AssetRow = memo(function AssetRow({
   b,
   onAssetClick,
   detailRef,
+  showIssuerSuffix,
 }: {
   b: Balance;
   onAssetClick?: (balance: Balance) => void;
   detailRef?: React.RefObject<HTMLElement | null>;
+  showIssuerSuffix?: boolean;
 }) {
   const isZeroBalance = Number(b.balance) === 0;
   const onClick = useCallback(() => {
@@ -87,7 +100,7 @@ const AssetRow = memo(function AssetRow({
         hasClickHandler && "cursor-pointer hover:bg-surface-2 transition-colors",
       )}
     >
-      <AssetBadge balance={b} />
+      <AssetBadge balance={b} showIssuerSuffix={showIssuerSuffix} />
       <div className="flex flex-col items-end gap-0.5">
         <span
           className={cn(
@@ -128,6 +141,15 @@ export function BalanceList({
   const showFriendbot = isTestnet && isConnected && !isLoadingAccount && balances.length === 0;
 
   const skeletonCount = balances.length > 0 ? balances.length : 3;
+
+  const codeCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const b of balances) {
+      const code = getAssetCode(b);
+      counts.set(code, (counts.get(code) ?? 0) + 1);
+    }
+    return counts;
+  }, [balances]);
 
   const filtered = useMemo(
     () =>
@@ -240,8 +262,15 @@ export function BalanceList({
             <div>
               {sorted.map((b) => (
                 <AssetRow
-                  key={b.asset}
+                  key={
+                    b.assetCode && b.assetIssuer
+                      ? b.assetCode + ":" + b.assetIssuer
+                      : b.asset + ":native"
+                  }
                   b={b}
+                  showIssuerSuffix={Boolean(
+                    b.assetIssuer && (codeCounts.get(getAssetCode(b)) ?? 0) > 1,
+                  )}
                   onAssetClick={onAssetClick}
                   detailRef={detailRef}
                 />
@@ -257,8 +286,15 @@ export function BalanceList({
               </div>
               {sortedLp.map((b) => (
                 <AssetRow
-                  key={b.asset}
+                  key={
+                    b.assetCode && b.assetIssuer
+                      ? b.assetCode + ":" + b.assetIssuer
+                      : b.asset + ":native"
+                  }
                   b={b}
+                  showIssuerSuffix={Boolean(
+                    b.assetIssuer && (codeCounts.get(getAssetCode(b)) ?? 0) > 1,
+                  )}
                   onAssetClick={onAssetClick}
                   detailRef={detailRef}
                 />

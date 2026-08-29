@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { useSorokit } from "@/context/useSorokit";
@@ -15,10 +15,22 @@ vi.mock("@/lib/client", () => ({
 }));
 
 describe("ClaimableBalanceCard", () => {
+  // `ClaimableBalanceCard` reads `client` from `useSorokit()` directly, not
+  // from `getClient()` — the `@/lib/client` mock only supplies the type, so
+  // `vi.mocked(getClient).mockReturnValue(...)` alone (the pattern every
+  // test below already used) never actually reached the component: `client`
+  // was always undefined, every fetch silently no-op'd, and the card stayed
+  // on its empty state regardless of what the test configured. `client` is
+  // a getter here (not a value captured at mockConnected()'s call time) so
+  // it still picks up whichever `getClient` mock a test configures
+  // afterward, regardless of call order.
   function mockConnected(address = "GABC123") {
     vi.mocked(useSorokit).mockReturnValue({
       address,
       isConnected: true,
+      get client() {
+        return getClient();
+      },
     } as unknown as ReturnType<typeof useSorokit>);
   }
 
@@ -65,7 +77,7 @@ describe("ClaimableBalanceCard", () => {
   });
 
   describe("claim flow", () => {
-    it("shows error and re-enables button on claim failure, shows Claimed badge on success", async () => {
+    it("shows error and re-enables button on claim failure, removes the row on success", async () => {
       mockConnected();
       const mockClaimBalance = vi.fn()
         .mockResolvedValueOnce({ data: null, error: "Network error" })
@@ -92,8 +104,73 @@ describe("ClaimableBalanceCard", () => {
       expect(claimButton).not.toBeDisabled();
 
       fireEvent.click(claimButton);
-      expect(await screen.findByText("Claimed")).toBeInTheDocument();
+      expect(await screen.findByText(/no claimable balances/i)).toBeInTheDocument();
+      expect(screen.queryByText("10.00")).not.toBeInTheDocument();
       expect(screen.queryByRole("button", { name: "Claim" })).not.toBeInTheDocument();
+    });
+
+    it("shows an error and does not remove the row when the API resolves with no data and no error", async () => {
+      mockConnected();
+      const mockClaimBalance = vi.fn().mockResolvedValue({ data: null, error: null });
+      vi.mocked(getClient).mockReturnValue({
+        account: {
+          getClaimableBalances: vi.fn().mockResolvedValue({
+            data: [{
+              id: "cb1", asset: "XLM:GABC", amount: "10.0", sponsor: "GDEF",
+              claimants: [{ destination: "GDEF", predicate: { unconditional: true } }],
+            }],
+            error: null,
+          }),
+          claimBalance: mockClaimBalance,
+        },
+      } as unknown as ReturnType<typeof getClient>);
+
+      render(<ClaimableBalanceCard />);
+      const claimButton = await screen.findByRole("button", { name: "Claim" });
+      fireEvent.click(claimButton);
+
+      expect(await screen.findByText(/claim did not complete/i)).toBeInTheDocument();
+      expect(claimButton).not.toBeDisabled();
+      expect(screen.queryByText("Claimed")).not.toBeInTheDocument();
+      expect(screen.getByText("10.00")).toBeInTheDocument();
+    });
+
+    it("removes only the claimed balance and updates the header count when multiple balances exist", async () => {
+      mockConnected();
+      const mockClaimBalance = vi.fn().mockResolvedValue({ data: { hash: "tx123" }, error: null });
+      vi.mocked(getClient).mockReturnValue({
+        account: {
+          getClaimableBalances: vi.fn().mockResolvedValue({
+            data: [
+              {
+                id: "cb1", asset: "XLM:GABC", amount: "10.0", sponsor: "GDEF",
+                claimants: [{ destination: "GDEF", predicate: { unconditional: true } }],
+              },
+              {
+                id: "cb2", asset: "XLM:GABC", amount: "20.0", sponsor: "GDEF",
+                claimants: [{ destination: "GDEF", predicate: { unconditional: true } }],
+              },
+            ],
+            error: null,
+          }),
+          claimBalance: mockClaimBalance,
+        },
+      } as unknown as ReturnType<typeof getClient>);
+
+      render(<ClaimableBalanceCard />);
+      expect(await screen.findByText("10.00")).toBeInTheDocument();
+      expect(screen.getByText("20.00")).toBeInTheDocument();
+      expect(screen.getByText("2 pending")).toBeInTheDocument();
+
+      const claimButtons = screen.getAllByRole("button", { name: "Claim" });
+      fireEvent.click(claimButtons[0]);
+
+      await waitFor(() => {
+        expect(screen.queryByText("10.00")).not.toBeInTheDocument();
+      });
+      expect(screen.getByText("20.00")).toBeInTheDocument();
+      expect(screen.getByText("1 pending")).toBeInTheDocument();
+      expect(mockClaimBalance).toHaveBeenCalledWith("cb1");
     });
   });
 
@@ -256,7 +333,7 @@ describe("ClaimableBalanceCard", () => {
       render(<ClaimableBalanceCard confirmThreshold="1000" />);
       expect(await screen.findByText("5.00")).toBeInTheDocument();
       fireEvent.click(screen.getByRole("button", { name: "Claim" }));
-      await screen.findByText("Claimed");
+      await screen.findByText(/no claimable balances/i);
       expect(screen.queryByText("Confirm Claim")).not.toBeInTheDocument();
     });
 
@@ -277,7 +354,7 @@ describe("ClaimableBalanceCard", () => {
       fireEvent.click(screen.getByRole("button", { name: "Claim" }));
       expect(await screen.findByText("Confirm Claim")).toBeInTheDocument();
       fireEvent.click(screen.getByRole("button", { name: /confirm/i }));
-      expect(await screen.findByText("Claimed")).toBeInTheDocument();
+      expect(await screen.findByText(/no claimable balances/i)).toBeInTheDocument();
     });
   });
 

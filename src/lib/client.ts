@@ -15,6 +15,9 @@ export interface TransactionParams {
   memo?: string;
 }
 
+/** Result status shared by async client methods that return a request state. */
+export type RequestStatus = "idle" | "loading" | "success" | "error";
+
 /** A Soroban XDR value produced by @stellar/stellar-sdk. */
 export type SorobanScVal = object;
 
@@ -60,7 +63,7 @@ export type SorokitClient = {
     connect: () => Promise<{
       data: { address: string } | null;
       error: string | null;
-      status: "idle" | "loading" | "success" | "error";
+      status: RequestStatus;
     }>;
     disconnect: () => Promise<void>;
     getAddress: () => Promise<{ data: string | null; error: string | null }>;
@@ -71,7 +74,7 @@ export type SorokitClient = {
     ) => Promise<{
       data: AccountData | null;
       error: string | null;
-      status: string;
+      status: RequestStatus;
     }>;
     getBalances: (
       address: string,
@@ -89,7 +92,7 @@ export type SorokitClient = {
     ) => Promise<{
       data: TxResult | null;
       error: string | null;
-      status: string;
+      status: RequestStatus;
     }>;
     getStatus: (
       txHash: string,
@@ -125,10 +128,10 @@ export type SorokitClient = {
   soroban: {
     invokeContract: (
       params: InvokeParams,
-    ) => Promise<{ data: unknown; error: string | null; status: string }>;
+    ) => Promise<{ data: unknown; error: string | null; status: RequestStatus }>;
     simulateContract: (
       params: InvokeParams,
-    ) => Promise<{ data: unknown; error: string | null; status: string }>;
+    ) => Promise<{ data: unknown; error: string | null; status: RequestStatus }>;
     getEvents: (
       contractId: string,
       limit?: number,
@@ -195,7 +198,7 @@ export type SorokitClient = {
     }) => Promise<{
       data: TxResult | null;
       error: string | null;
-      status: string;
+      status: RequestStatus;
     }>;
     revokeAllowance: (params: {
       sourceAccount: string;
@@ -204,7 +207,7 @@ export type SorokitClient = {
     }) => Promise<{
       data: TxResult | null;
       error: string | null;
-      status: string;
+      status: RequestStatus;
     }>;
     estimateAllowanceFee: (params: {
       asset: string;

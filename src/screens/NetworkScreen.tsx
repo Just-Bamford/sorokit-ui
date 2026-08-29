@@ -1,4 +1,5 @@
-import { HugeiconsIcon, Loading01Icon } from "@hugeicons/react";
+import { Loading01Icon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import { useEffect, useRef, useState } from "react";
 
 import { Badge } from "@/components/ui/Badge";

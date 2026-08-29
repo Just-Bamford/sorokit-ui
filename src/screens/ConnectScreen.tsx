@@ -23,6 +23,10 @@ export function ConnectScreen() {
     }
   }, [isConnecting]);
 
+  useEffect(() => {
+    document.title = "Connect — Sorokit";
+  }, []);
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-base px-4">
       <div className="w-full max-w-[400px] flex flex-col items-center gap-8">

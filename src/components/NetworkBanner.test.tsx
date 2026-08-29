@@ -133,7 +133,7 @@ describe("NetworkBanner", () => {
   });
 
   it("shows a generic non-mainnet banner for unknown networks", async () => {
-    mockNetwork({ name: "private-testnet" as any, rpcUrl: "", horizonUrl: "", passphrase: "" });
+    mockNetwork({ name: "private-testnet" as never, rpcUrl: "", horizonUrl: "", passphrase: "" });
     render(<NetworkBanner />);
     expect(await screen.findByText(/private-testnet/i)).toBeInTheDocument();
     expect(screen.getByText(/test funds only/i)).toBeInTheDocument();
