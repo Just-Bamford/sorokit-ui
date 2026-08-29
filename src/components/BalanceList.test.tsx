@@ -794,7 +794,9 @@ describe("BalanceList", () => {
       render(<BalanceList />);
 
       const badges = screen.getAllByTestId("asset-badge");
-      expect(badges[0]).toHaveTextContent("XLM");
+      expect(badges).toHaveLength(2);
+      expect(badges[0]).toHaveTextContent("USDC");
+      expect(badges[1]).toHaveTextContent("USDC");
     });
   });
 });
