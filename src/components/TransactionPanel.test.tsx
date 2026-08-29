@@ -415,6 +415,39 @@ describe("TransactionPanel", () => {
         "https://stellar.expert/explorer/testnet/tx/txhash123",
       );
     });
+
+    it("gives both explorer links an accessible aria-label (#563)", async () => {
+      const mockSubmit = vi
+        .fn()
+        .mockResolvedValue({ data: { hash: "txhash123", ledger: 100 }, error: null });
+      mockGetClient(mockSubmit);
+      vi.mocked(useSorokit).mockReturnValue({
+        address: "GABC",
+        isConnected: true,
+        network: { name: "testnet", passphrase: "x", rpcUrl: "x", horizonUrl: "x" },
+        client: getClient(),
+      } as unknown as ReturnType<typeof useSorokit>);
+
+      render(<TransactionPanel />);
+
+      const validDest = "GCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC";
+      fireEvent.change(screen.getByLabelText("Destination Address"), { target: { value: validDest } });
+      fireEvent.change(screen.getByLabelText("Amount (XLM)"), { target: { value: "10" } });
+
+      await reviewAndConfirm();
+      await screen.findByText("Transaction submitted");
+
+      // Scoped to the two links this change touches — TransactionStatusTracker
+      // renders its own separate explorer link lower in the panel.
+      const hashLink = screen.getByText("txhash123").closest("a")!;
+      const badgeLink = screen.getByRole("link", {
+        name: /view on stellar expert/i,
+      });
+      for (const link of [hashLink, badgeLink]) {
+        expect(link).toHaveAccessibleName(expect.stringContaining("txhash123"));
+        expect(link).toHaveAccessibleName(expect.stringMatching(/opens in a new tab/i));
+      }
+    });
   });
 
   describe("default prop pre-fill (#351)", () => {

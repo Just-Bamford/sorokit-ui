@@ -420,6 +420,46 @@ describe("TransactionHistory", () => {
       expect(row.tagName).toBe("DIV");
       expect(row).not.toHaveAttribute("href");
     });
+
+    it("mentions the explorer link in the row's aria-label when it is one (#563)", async () => {
+      vi.mocked(useSorokit).mockReturnValue(
+        mockUseSorokit({
+          address: ADDRESS,
+          isConnected: true,
+          network: { name: "testnet" } as ReturnType<typeof useSorokit>["network"],
+        }),
+      );
+      const tx = makeTx(0);
+      mockGetHistory([tx], 1);
+
+      render(<TransactionHistory />);
+      act(() => { vi.advanceTimersByTime(0); });
+
+      await waitFor(() => screen.getByRole("article"));
+      expect(screen.getByRole("article")).toHaveAccessibleName(
+        expect.stringMatching(/stellar expert.*opens in a new tab/i),
+      );
+    });
+
+    it("does not mention an explorer link in the aria-label for a non-link row (#563)", async () => {
+      vi.mocked(useSorokit).mockReturnValue(
+        mockUseSorokit({
+          address: ADDRESS,
+          isConnected: true,
+          network: { name: "futurenet" } as ReturnType<typeof useSorokit>["network"],
+        }),
+      );
+      const tx = makeTx(0);
+      mockGetHistory([tx], 1);
+
+      render(<TransactionHistory />);
+      act(() => { vi.advanceTimersByTime(0); });
+
+      await waitFor(() => screen.getByRole("article"));
+      expect(screen.getByRole("article")).not.toHaveAccessibleName(
+        expect.stringMatching(/stellar expert/i),
+      );
+    });
   });
 
   describe("status and date range filtering (#350, #352)", () => {

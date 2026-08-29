@@ -268,9 +268,10 @@ export function TransactionPanel({
                   href={explorerUrl}
                   target="_blank"
                   rel="noopener noreferrer"
+                  aria-label={`View transaction ${result.hash} on Stellar Expert (opens in a new tab)`}
                   className="break-all leading-relaxed text-brand hover:underline inline-flex items-start gap-1.5"
                 >
-                  <span>{result.hash}</span>
+                  <span aria-hidden="true">{result.hash}</span>
                   <ExternalLinkIcon className="mt-[3px] shrink-0 opacity-70" />
                 </a>
               ) : (
@@ -287,6 +288,7 @@ export function TransactionPanel({
                     href={explorerUrl}
                     target="_blank"
                     rel="noopener noreferrer"
+                    aria-label={`View on Stellar Expert: transaction ${result.hash} (opens in a new tab)`}
                     className="text-[11px] text-brand hover:underline"
                   >
                     View on Stellar Expert
