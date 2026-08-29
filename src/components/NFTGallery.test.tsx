@@ -52,7 +52,7 @@ function makeNft(overrides: Partial<Nft> = {}): Nft {
 function makeConnectedContext(extra = {}) {
   return {
     address: VALID_ADDRESS,
-    isConnected: true,
+    isConnected: true, get client() { return getClient(); },
     ...extra,
   } as unknown as ReturnType<typeof useSorokit>;
 }

@@ -47,7 +47,7 @@ describe("TransactionPanel", () => {
     vi.clearAllMocks();
     vi.mocked(useSorokit).mockReturnValue({
       address: "GABC",
-      isConnected: true, client: {},
+      isConnected: true, get client() { return getClient(); },
     } as unknown as ReturnType<typeof useSorokit>);
   });
 
@@ -176,7 +176,7 @@ describe("TransactionPanel", () => {
   it("shows error if address is null at submit time", async () => {
     vi.mocked(useSorokit).mockReturnValue({
       address: null,
-      isConnected: true, client: {},
+      isConnected: true, get client() { return getClient(); },
     } as unknown as ReturnType<typeof useSorokit>);
 
     render(<TransactionPanel />);
@@ -202,7 +202,7 @@ describe("TransactionPanel", () => {
   it("shows self-payment warning when destination equals source address", async () => {
     vi.mocked(useSorokit).mockReturnValue({
       address: "GCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC",
-      isConnected: true, client: {},
+      isConnected: true, get client() { return getClient(); },
     } as unknown as ReturnType<typeof useSorokit>);
 
     render(<TransactionPanel />);
@@ -302,7 +302,7 @@ describe("TransactionPanel", () => {
     it("populates the asset selector with the correct asset codes from context balances", () => {
       vi.mocked(useSorokit).mockReturnValue({
         address: "GABC",
-        isConnected: true, client: {},
+        isConnected: true, get client() { return getClient(); },
         balances,
       } as unknown as ReturnType<typeof useSorokit>);
 
@@ -320,7 +320,7 @@ describe("TransactionPanel", () => {
       mockGetClient(mockSubmit);
       vi.mocked(useSorokit).mockReturnValue({
         address: "GABC",
-        isConnected: true, client: {},
+        isConnected: true, get client() { return getClient(); },
         balances,
       } as unknown as ReturnType<typeof useSorokit>);
 
@@ -351,7 +351,7 @@ describe("TransactionPanel", () => {
     it("disables the asset selector when no balances are loaded", () => {
       vi.mocked(useSorokit).mockReturnValue({
         address: "GABC",
-        isConnected: true, client: {},
+        isConnected: true, get client() { return getClient(); },
         balances: [],
       } as unknown as ReturnType<typeof useSorokit>);
 
@@ -395,7 +395,7 @@ describe("TransactionPanel", () => {
       mockGetClient(mockSubmit);
       vi.mocked(useSorokit).mockReturnValue({
         address: "GABC",
-        isConnected: true, client: {},
+        isConnected: true, get client() { return getClient(); },
         network: { name: "testnet", passphrase: "x", rpcUrl: "x", horizonUrl: "x" },
       } as unknown as ReturnType<typeof useSorokit>);
 
@@ -613,7 +613,7 @@ describe("TransactionPanel", () => {
     it("renders 'Send XLM' while XLM is the selected asset (multi-balance wallet)", () => {
       vi.mocked(useSorokit).mockReturnValue({
         address: "GABC",
-        isConnected: true, client: {},
+        isConnected: true, get client() { return getClient(); },
         balances,
       } as unknown as ReturnType<typeof useSorokit>);
 
@@ -626,7 +626,7 @@ describe("TransactionPanel", () => {
     it("renders 'Send USDC' once the user switches the asset select to USDC", () => {
       vi.mocked(useSorokit).mockReturnValue({
         address: "GABC",
-        isConnected: true, client: {},
+        isConnected: true, get client() { return getClient(); },
         balances,
       } as unknown as ReturnType<typeof useSorokit>);
 

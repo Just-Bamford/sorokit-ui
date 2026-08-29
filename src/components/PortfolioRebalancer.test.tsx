@@ -35,10 +35,7 @@ const FIVE_BALANCES = [
 ];
 
 function mockSorokit(overrides: Partial<ReturnType<typeof useSorokit>> = {}) {
-  vi.mocked(useSorokit).mockReturnValue({
-    address: MOCK_ADDRESS,
-    isConnected: true,
-    isConnecting: false,
+  vi.mocked(useSorokit).mockReturnValue({ address: MOCK_ADDRESS, isConnected: true, get client() { return getClient(); }, isConnecting: false,
     isLoading: false,
     isLoadingAccount: false,
     balances: TWO_BALANCES,

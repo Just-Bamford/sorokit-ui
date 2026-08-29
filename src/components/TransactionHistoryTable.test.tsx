@@ -8,7 +8,7 @@ import { TransactionHistoryTable } from "./TransactionHistoryTable";
 
 // Mock context
 vi.mock("@/context/useSorokit", () => ({
-  useSorokit: () => ({ address: "GABC123...", isConnected: true }),
+  useSorokit: () => ({ address: "GABC123...", isConnected: true, get client() { return getClient(); } }),
 }));
 
 // Mock client

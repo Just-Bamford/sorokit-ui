@@ -30,6 +30,7 @@ describe("SorobanPanel", () => {
     vi.mocked(useSorokit).mockReturnValue({
       isConnected: true,
       address: "GAAZI4TCR3TY5OJHCTJC2A4QSY6CJWJH5IAJTGKIN2ER7LBNVKOCCWNA",
+      get client() { return getClient(); },
     } as unknown as ReturnType<typeof useSorokit>);
   });
 

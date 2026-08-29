@@ -209,10 +209,7 @@ describe("TransactionHistory", () => {
     });
 
     // Switch wallet address to account B
-    vi.mocked(useSorokit).mockReturnValue({
-      address: ADDRESS_B,
-      isConnected: true,
-    } as unknown as ReturnType<typeof useSorokit>);
+    vi.mocked(useSorokit).mockReturnValue({ address: ADDRESS_B, isConnected: true, get client() { return getClient(); },  } as unknown as ReturnType<typeof useSorokit>);
 
     rerender(<TransactionHistory />);
     act(() => { vi.advanceTimersByTime(0); });
@@ -253,10 +250,7 @@ describe("TransactionHistory", () => {
     await waitFor(() => screen.getByText(/25 transactions/i));
 
     // Switch wallet address to account B (fetch remains pending)
-    vi.mocked(useSorokit).mockReturnValue({
-      address: ADDRESS_B,
-      isConnected: true,
-    } as unknown as ReturnType<typeof useSorokit>);
+    vi.mocked(useSorokit).mockReturnValue({ address: ADDRESS_B, isConnected: true, get client() { return getClient(); },  } as unknown as ReturnType<typeof useSorokit>);
 
     rerender(<TransactionHistory />);
     act(() => { vi.advanceTimersByTime(0); });
@@ -778,10 +772,7 @@ describe("TransactionHistory", () => {
 
       // Change the address via the mocked hook
       const NEW_ADDRESS = "GNEWADDRESS12345678901234567890123456789012345678901234";
-      vi.mocked(useSorokit).mockReturnValue({
-        address: NEW_ADDRESS,
-        isConnected: true,
-        client: mockClient,
+      vi.mocked(useSorokit).mockReturnValue({ address: NEW_ADDRESS, isConnected: true, get client() { return getClient(); }, client: mockClient,
       } as unknown as ReturnType<typeof useSorokit>);
 
       rerender(<TransactionHistory />);
