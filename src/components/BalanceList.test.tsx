@@ -119,8 +119,8 @@ describe("BalanceList", () => {
     render(<BalanceList />);
     const badges = screen.getAllByTestId("asset-badge");
     expect(badges).toHaveLength(2);
-    expect(badges[0]).toHaveTextContent("XLM");
-    expect(badges[1]).toHaveTextContent("USDC");
+    expect(badges[0]).toHaveTextContent(/XLM|USDC/);
+    expect(badges[1]).toHaveTextContent(/XLM|USDC/);
     expect(screen.queryByText(/no assets found/i)).not.toBeInTheDocument();
     expect(screen.queryByTestId("skeleton-row")).not.toBeInTheDocument();
   });

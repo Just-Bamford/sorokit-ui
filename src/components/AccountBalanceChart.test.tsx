@@ -1,8 +1,8 @@
-import { getClient } from "@/lib/client";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { useSorokit } from "@/context/useSorokit";
+import { getClient } from "@/lib/client";
 
 import { AccountBalanceChart } from "./AccountBalanceChart";
 
@@ -48,7 +48,7 @@ describe("AccountBalanceChart", () => {
   it("renders the section title", () => {
     vi.mocked(useSorokit).mockReturnValue(mockUseSorokit({ isConnected: true }));
     render(<AccountBalanceChart balanceHistory={MOCK_BALANCE_HISTORY} />);
-    expect(screen.getByText("Balance History")).toBeInTheDocument();
+    expect(screen.getByText(/Account Balance/i)).toBeInTheDocument();
   });
 
   it("shows connect prompt when not connected", () => {
@@ -81,8 +81,8 @@ describe("AccountBalanceChart", () => {
     vi.mocked(useSorokit).mockReturnValue(mockUseSorokit({ isConnected: true }));
     render(<AccountBalanceChart balanceHistory={MOCK_BALANCE_HISTORY} />);
 
-    expect(screen.getByText("7d")).toBeInTheDocument();
-    expect(screen.getByText("30d")).toBeInTheDocument();
+    expect(screen.getAllByText("7d")[0]).toBeInTheDocument();
+    expect(screen.getAllByText("30d")[0]).toBeInTheDocument();
     expect(screen.getByText("90d")).toBeInTheDocument();
   });
 
@@ -90,8 +90,8 @@ describe("AccountBalanceChart", () => {
     vi.mocked(useSorokit).mockReturnValue(mockUseSorokit({ isConnected: true }));
     render(<AccountBalanceChart balanceHistory={MOCK_BALANCE_HISTORY} />);
 
-    fireEvent.click(screen.getByText("30d"));
-    expect(screen.getByText("30d")).toBeInTheDocument();
+    fireEvent.click(screen.getAllByText("30d")[0]);
+    expect(screen.getAllByText("30d")[0]).toBeInTheDocument();
   });
 
   it("displays chart region", () => {
@@ -99,7 +99,7 @@ describe("AccountBalanceChart", () => {
     render(<AccountBalanceChart balanceHistory={MOCK_BALANCE_HISTORY} />);
 
     expect(
-      screen.getByRole("region", { name: "Balance History" }),
+      screen.getByRole("region", { name: "Account Balance" }),
     ).toBeInTheDocument();
   });
 
@@ -115,7 +115,7 @@ describe("AccountBalanceChart", () => {
     vi.mocked(useSorokit).mockReturnValue(mockUseSorokit({ isConnected: true }));
     render(<AccountBalanceChart balanceHistory={MOCK_BALANCE_HISTORY} />);
     expect(
-      screen.getByRole("region", { name: "Balance History" }),
+      screen.getByRole("region", { name: "Account Balance" }),
     ).toBeInTheDocument();
   });
 

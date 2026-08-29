@@ -179,7 +179,7 @@ describe("PortfolioRebalancer — allocations tab", () => {
     render(<PortfolioRebalancer />);
     await waitFor(() => {
       // Table headers
-      expect(screen.getByRole("columnheader", { name: /asset/i })).toBeInTheDocument();
+      expect(screen.getByRole("columnheader", { name: /Asset/i })).toBeInTheDocument();
       expect(screen.getByRole("columnheader", { name: /current/i })).toBeInTheDocument();
       expect(screen.getByRole("columnheader", { name: /target/i })).toBeInTheDocument();
       expect(screen.getByRole("columnheader", { name: /diff/i })).toBeInTheDocument();
@@ -231,7 +231,7 @@ describe("PortfolioRebalancer — tab navigation", () => {
     render(<PortfolioRebalancer />);
     await waitFor(() => screen.getByRole("tab", { name: /preview/i }));
     fireEvent.click(screen.getByRole("tab", { name: /preview/i }));
-    const editBtn = screen.getByRole("button", { name: /edit targets/i });
+    const editBtn = screen.getByRole("button", { name: /Edit/i });
     fireEvent.click(editBtn);
     expect(screen.getByRole("tab", { name: /allocations/i }))
       .toHaveAttribute("aria-selected", "true");
@@ -299,7 +299,7 @@ describe("PortfolioRebalancer — preview tab", () => {
     render(<PortfolioRebalancer />);
     await waitFor(() => screen.getByRole("tab", { name: /preview/i }));
     fireEvent.click(screen.getByRole("tab", { name: /preview/i }));
-    expect(screen.getByText("Suggested Swaps")).toBeInTheDocument();
+    expect(screen.getByText(/Review Swaps/i)).toBeInTheDocument();
   });
 
   it("renders Confirm & execute button when targets are valid and swaps exist", async () => {

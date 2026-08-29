@@ -34,6 +34,7 @@ describe("TransactionPanel integration", () => {
     (
       useSorokit as unknown as { mockReturnValue: (value: unknown) => void }
     ).mockReturnValue({
+      get client() { return getClient(); },
       isConnected: true,
       address: "GABCDEF1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF123456",
       connectWallet: vi.fn(),

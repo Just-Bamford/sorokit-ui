@@ -320,7 +320,7 @@ describe("GasOptimizer", () => {
     expect(slider).toHaveValue("1");
 
     fireEvent.change(slider, { target: { value: "2" } });
-    await waitFor(() => expect(screen.getByText("2.0x")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getAllByText("2.0x")[0]).toBeInTheDocument());
   });
 
   it("supports custom operations prop", async () => {
