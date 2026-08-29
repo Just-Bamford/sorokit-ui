@@ -117,4 +117,22 @@ describe("WalletConnectButton", () => {
     fireEvent.click(clearBtn);
     expect(mockClearError).toHaveBeenCalledTimes(1);
   });
+
+  it("calls onOpenModal when connected address pill is clicked", () => {
+    const mockOnOpenModal = vi.fn();
+    const fullAddress = "GABC1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    vi.mocked(useSorokit).mockReturnValue(mockUseSorokit({
+      isConnected: true,
+      address: fullAddress,
+      connectWallet: mockConnect,
+      clearError: mockClearError,
+    }));
+
+    render(<WalletConnectButton onOpenModal={mockOnOpenModal} />);
+    const addressPill = screen.getByRole("button", {
+      name: `Wallet connected: ${fullAddress}. Click to manage.`,
+    });
+    fireEvent.click(addressPill);
+    expect(mockOnOpenModal).toHaveBeenCalledTimes(1);
+  });
 });
