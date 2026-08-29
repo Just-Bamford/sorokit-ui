@@ -1,13 +1,12 @@
-import { Copy01Icon, Tick01Icon } from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react";
 import { useEffect, useRef, useState } from "react";
 
 import { AddressDisplay } from "@/components/AddressDisplay";
 import { QRCode } from "@/components/QRCode";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
+import { InfoCell } from "@/components/ui/InfoCell";
 import { useSorokit } from "@/context/useSorokit";
-import { cn, truncateAddress } from "@/lib/utils";
+import { truncateAddress } from "@/lib/utils";
 
 export function WalletScreen() {
   const { address, isConnected, disconnectWallet, network } = useSorokit();
@@ -133,62 +132,3 @@ export function WalletScreen() {
   );
 }
 
-function InfoCell({
-  label,
-  value,
-  mono,
-  copyable,
-}: {
-  label: string;
-  value: string;
-  mono?: boolean;
-  copyable?: boolean;
-}) {
-  const [copied, setCopied] = useState(false);
-
-  async function copy() {
-    try {
-      await navigator.clipboard.writeText(value);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      /* fallback */
-    }
-  }
-
-  return (
-    <div className="px-6 py-4 flex flex-col gap-1.5">
-      <span className="text-[10px] font-semibold uppercase tracking-[0.1em] text-ink-4">
-        {label}
-      </span>
-      <div className="flex items-center gap-2 group">
-        <span
-          title={value}
-          className={`text-[13px] text-ink-2 break-all ${mono ? "font-mono text-[12px]" : ""}`}
-        >
-          {value}
-        </span>
-        {copyable && (
-          <button
-            onClick={copy}
-            aria-label={copied ? "Copied" : "Copy value"}
-            className={cn(
-              "shrink-0 p-1 rounded-md transition-all",
-              copied
-                ? "text-green bg-success-dim"
-                : "text-ink-3 hover:text-ink-2 hover:bg-surface-2 opacity-50 hover:opacity-100",
-            )}
-            title={copied ? "Copied!" : "Copy value"}
-          >
-            <HugeiconsIcon
-              icon={copied ? Tick01Icon : Copy01Icon}
-              size={12}
-              color="currentColor"
-              strokeWidth={2}
-            />
-          </button>
-        )}
-      </div>
-    </div>
-  );
-}

@@ -32,6 +32,8 @@ export {
 } from "./ui/Card";
 export { Input } from "./ui/Input";
 export { AssetRowSkeleton, Skeleton, SkeletonCard, SkeletonRow } from "./ui/Skeleton";
+export type { InfoCellProps } from "./ui/InfoCell";
+export { InfoCell } from "./ui/InfoCell";
 
 // Error handling
 export { ErrorBoundary } from "./ErrorBoundary";
