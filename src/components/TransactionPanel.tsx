@@ -183,6 +183,7 @@ export function TransactionPanel({
 
   /** Builds a preview of the transaction and opens the confirmation modal. */
   async function buildPreview() {
+    if (!address) return;
     setIsBuildingPreview(true);
     try {
       const { data: feeData } = client ? await client.transaction.estimateFee() : { data: null };
