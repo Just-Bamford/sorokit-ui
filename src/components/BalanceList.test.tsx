@@ -56,13 +56,7 @@ const mockUsdcBalance = {
   assetCode: "USDC",
   assetIssuer: "GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN",
 };
-const mockUsdcBalance2 = {
-  asset: "USDC",
-  balance: "30.0000000",
-  assetType: "credit_alphanum4" as const,
-  assetCode: "USDC",
-  assetIssuer: "GB6USDTISSUERABCDEFGHIJKLMNOPQRSTUVWXYZ12345",
-};
+
 const mockLpBalance = {
   asset: "LP-POOL-1",
   balance: "10.0000000",
