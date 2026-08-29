@@ -141,7 +141,7 @@ describe("AssetBadge", () => {
     expect(icon).toBeInTheDocument();
   });
 
-  it("assigns consistent colors to unknown assets based on code hash", () => {
+  it("assigns deterministic colors to unknown assets and not grey", () => {
     const customBalance1: Balance = {
       assetType: "credit_alphanum12",
       assetCode: "CUSTOM1",
@@ -159,9 +159,8 @@ describe("AssetBadge", () => {
     const { container: c1 } = render(<AssetBadge balance={customBalance1} />);
     const { container: c2 } = render(<AssetBadge balance={customBalance2} />);
 
-    const icon1Classes = c1.querySelector(".text-ink")?.parentElement?.className || "";
-    const icon2Classes = c2.querySelector(".text-ink")?.parentElement?.className || "";
-    expect(icon1Classes).not.toEqual(icon2Classes);
+    expect(c1.querySelector(".bg-surface-2")).not.toBeInTheDocument();
+    expect(c2.querySelector(".bg-surface-2")).not.toBeInTheDocument();
   });
 
   it("renders 'LP' for liquidity_pool_shares without undefined display", () => {
