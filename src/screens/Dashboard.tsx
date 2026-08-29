@@ -1,14 +1,54 @@
-import { type ComponentType,useState } from "react";
+import { type ComponentType, lazy, Suspense, useCallback, useEffect, useState } from "react";
 
 import { NetworkBanner } from "@/components/NetworkBanner";
-import { type NavSection,Sidebar } from "@/components/Sidebar";
+import { type NavSection, Sidebar } from "@/components/Sidebar";
 import { TopBar } from "@/components/TopBar";
 import { AccountScreen } from "@/screens/AccountScreen";
-import { NFTScreen } from "@/screens/NFTScreen";
-import { NetworkScreen } from "@/screens/NetworkScreen";
-import { SorobanScreen } from "@/screens/SorobanScreen";
-import { TransactionsScreen } from "@/screens/TransactionsScreen";
 import { WalletScreen } from "@/screens/WalletScreen";
+
+// Screens that are less likely to be the entry point are code-split so the
+// initial bundle only pays for what's visited.
+const BudgetScreen = lazy(() =>
+  import("@/screens/BudgetScreen").then((m) => ({ default: m.BudgetScreen })),
+);
+const ChartingScreen = lazy(() =>
+  import("@/screens/ChartingScreen").then((m) => ({ default: m.ChartingScreen })),
+);
+const NetworkScreen = lazy(() =>
+  import("@/screens/NetworkScreen").then((m) => ({ default: m.NetworkScreen })),
+);
+const NFTScreen = lazy(() =>
+  import("@/screens/NFTScreen").then((m) => ({ default: m.NFTScreen })),
+);
+const RecoveryScreen = lazy(() =>
+  import("@/screens/RecoveryScreen").then((m) => ({ default: m.RecoveryScreen })),
+);
+const SorobanScreen = lazy(() =>
+  import("@/screens/SorobanScreen").then((m) => ({ default: m.SorobanScreen })),
+);
+const TransactionsScreen = lazy(() =>
+  import("@/screens/TransactionsScreen").then((m) => ({
+    default: m.TransactionsScreen,
+  })),
+);
+const YieldFarmingScreen = lazy(() =>
+  import("@/screens/YieldFarmingScreen").then((m) => ({
+    default: m.YieldFarmingScreen,
+  })),
+);
+
+const PAGE_TITLES: Record<NavSection, string> = {
+  wallet: "Wallet — Sorokit",
+  account: "Account — Sorokit",
+  transactions: "Transactions — Sorokit",
+  soroban: "Soroban — Sorokit",
+  network: "Network — Sorokit",
+  recovery: "Recovery — Sorokit",
+  charts: "Charts — Sorokit",
+  farming: "Yield Farming — Sorokit",
+  budget: "Budget — Sorokit",
+  nfts: "NFTs — Sorokit",
+};
 
 const SCREENS: Record<NavSection, ComponentType> = {
   wallet: WalletScreen,
@@ -16,20 +56,70 @@ const SCREENS: Record<NavSection, ComponentType> = {
   transactions: TransactionsScreen,
   soroban: SorobanScreen,
   network: NetworkScreen,
+  recovery: RecoveryScreen,
+  charts: ChartingScreen,
+  farming: YieldFarmingScreen,
+  budget: BudgetScreen,
   nfts: NFTScreen,
 };
 
-export function Dashboard() {
-  const [active, setActive] = useState<NavSection>("wallet");
+export interface DashboardProps {
+  /** Max width of the main content column. Defaults to "700px". */
+  maxContentWidth?: string;
+  /**
+   * Controlled active section. When provided, `Dashboard` renders this section
+   * and never changes it internally — the parent owns the state and should
+   * update it from `onSectionChange`.
+   */
+  activeSection?: NavSection;
+  /** Fired whenever a nav item is chosen, in both controlled and uncontrolled mode. */
+  onSectionChange?: (section: NavSection) => void;
+  /** Initial section in uncontrolled mode. Ignored when `activeSection` is set. */
+  defaultSection?: NavSection;
+}
+
+export function Dashboard({
+  maxContentWidth = "700px",
+  activeSection,
+  onSectionChange,
+  defaultSection = "wallet",
+}: DashboardProps = {}) {
+  const isControlled = activeSection !== undefined;
+  const [internalActive, setInternalActive] =
+    useState<NavSection>(defaultSection);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  const ActiveScreen = SCREENS[active];
+  const active = isControlled ? activeSection : internalActive;
+
+  useEffect(() => {
+    document.title = PAGE_TITLES[active];
+  }, [active]);
+
+  // Screens keep their mounted state once actually shown (e.g. a half-typed
+  // Soroban form) instead of being torn down every time navigation moves
+  // away. Tracked off `active` (what actually rendered), not the nav click,
+  // so controlled mode only mounts a screen once the parent confirms it.
+  const [visited, setVisited] = useState<Set<NavSection>>(
+    () => new Set([active]),
+  );
+  if (!visited.has(active)) {
+    setVisited((prev) => new Set(prev).add(active));
+  }
+
+  const handleNavigate = useCallback(
+    (section: NavSection) => {
+      // In controlled mode the parent decides what renders next; only report.
+      if (!isControlled) setInternalActive(section);
+      onSectionChange?.(section);
+    },
+    [isControlled, onSectionChange],
+  );
 
   return (
     <div className="flex h-screen overflow-hidden bg-base">
       <Sidebar
         active={active}
-        onNavigate={setActive}
+        onNavigate={handleNavigate}
         open={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
       />
@@ -37,11 +127,28 @@ export function Dashboard() {
         <TopBar
           active={active}
           onMenuToggle={() => setSidebarOpen((o) => !o)}
+          sidebarOpen={sidebarOpen}
         />
         <NetworkBanner active={active} />
         <main className="flex-1 min-h-0 overflow-y-auto">
-          <div className="max-w-[700px] mx-auto px-6 py-8 sm:px-10 sm:py-10 min-h-[300px]">
-            <ActiveScreen />
+          <div
+            className="mx-auto px-6 py-8 sm:px-10 sm:py-10 min-h-[300px]"
+            style={{ maxWidth: maxContentWidth }}
+          >
+            {[...visited].map((section) => {
+              const Screen = SCREENS[section];
+              return (
+                <div
+                  key={section}
+                  hidden={section !== active}
+                  data-testid={`screen-wrapper-${section}`}
+                >
+                  <Suspense fallback={null}>
+                    <Screen />
+                  </Suspense>
+                </div>
+              );
+            })}
           </div>
         </main>
       </div>

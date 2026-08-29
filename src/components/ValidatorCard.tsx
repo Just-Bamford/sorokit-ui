@@ -14,9 +14,9 @@ import { HugeiconsIcon } from "@hugeicons/react";
 
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
-import { cn } from "@/lib/utils";
 import type { Delegation, Validator } from "@/lib/staking";
 import { formatPct, formatXlm } from "@/lib/staking";
+import { cn } from "@/lib/utils";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 

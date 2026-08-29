@@ -5,19 +5,19 @@
  */
 
 import {
+  AlertCircleIcon,
   ArrowRight01Icon,
   Cancel01Icon,
   CheckmarkCircle01Icon,
   Loading03Icon,
-  AlertCircleIcon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 
-import { Badge } from "@/components/ui/Badge";
-import { cn } from "@/lib/utils";
-import type { SwapSuggestion, SwapStatus } from "@/lib/rebalancer";
-import { formatPct, formatUsd, totalFeeStroops, totalRebalanceCostUsd, weightedAverageSlippage } from "@/lib/rebalancer";
 import { AssetPill } from "@/components/AssetBadge";
+import { Badge } from "@/components/ui/Badge";
+import type { SwapStatus,SwapSuggestion } from "@/lib/rebalancer";
+import { formatPct, formatUsd, totalFeeStroops, totalRebalanceCostUsd, weightedAverageSlippage } from "@/lib/rebalancer";
+import { cn } from "@/lib/utils";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 

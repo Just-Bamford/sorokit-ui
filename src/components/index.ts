@@ -20,8 +20,14 @@
 import "../styles.css";
 
 // UI primitives
+//
+// Card, Separator, and SkeletonCard are adopted primitives (not raw div +
+// Tailwind) — see SwapSimulator/RecoveryScreen/ChartingScreen/YieldFarmingScreen
+// /BudgetScreen for Card, WalletConnectModal for Separator, and
+// ClaimableBalanceCard for SkeletonCard.
 export { Badge } from "./ui/Badge";
-export { Button } from "./ui/Button";
+export type { ButtonGroupProps } from "./ui/Button";
+export { Button, ButtonGroup } from "./ui/Button";
 export {
   Card,
   CardContent,
@@ -30,7 +36,10 @@ export {
   CardHeader,
   CardTitle,
 } from "./ui/Card";
+export { InfoCell } from "./ui/InfoCell";
 export { Input } from "./ui/Input";
+export { LabelledValue } from "./ui/LabelledValue";
+export { Separator } from "./ui/Separator";
 export { AssetRowSkeleton, Skeleton, SkeletonCard, SkeletonRow } from "./ui/Skeleton";
 export type { InfoCellProps } from "./ui/InfoCell";
 export { InfoCell } from "./ui/InfoCell";
@@ -51,13 +60,26 @@ export {
 } from "./WalletConnectModal";
 
 // Assets
-export { AssetBadge, AssetPill } from "./AssetBadge";
+export type {
+  AssetBadgeProps,
+  AssetPillProps,
+} from "./AssetBadge";
+export {
+  ASSET_COLORS,
+  AssetBadge,
+  AssetPill,
+  getAssetColor,
+  isKnownAsset,
+} from "./AssetBadge";
+export type { AssetItem, AssetMeta, SortKey, VerifiedFilter } from "./AssetFilter";
+export { AssetFilter, AssetFilterSkeleton } from "./AssetFilter";
 
 // Address
 export { AddressDisplay } from "./AddressDisplay";
 
 // Network
-export { NetworkBanner } from "./NetworkBanner";
+export type { BannerConfig } from "./NetworkBanner";
+export { BANNER_CONFIG, NetworkBanner } from "./NetworkBanner";
 export { NetworkSwitcher } from "./NetworkSwitcher";
 
 // Allowances
@@ -66,8 +88,9 @@ export { AllowanceManager } from "./AllowanceManager";
 // Transactions
 export { ActivityTimeline } from "./ActivityTimeline";
 export { ClaimableBalanceCard } from "./ClaimableBalanceCard";
-export { FeeEstimator } from "./FeeEstimator";
+export { FeeCell,FeeEstimator } from "./FeeEstimator";
 export { GasOptimizer } from "./GasOptimizer";
+export { MultiSigTransactionBuilder } from "./MultiSigTransactionBuilder";
 export type {
   TransactionConfirmModalProps,
   TransactionFeeBreakdown,
@@ -76,10 +99,19 @@ export type {
 } from "./TransactionConfirmModal";
 export { TransactionConfirmModal } from "./TransactionConfirmModal";
 export { TransactionHistory } from "./TransactionHistory";
+export type {
+  SortDirection,
+  SortField,
+  TransactionFilters,
+  TransactionHistoryTableProps,
+} from "./TransactionHistoryTable";
+export { TransactionHistoryTable } from "./TransactionHistoryTable";
 export { TransactionPanel } from "./TransactionPanel";
+export { TransactionStatusTracker } from "./TransactionStatusTracker";
 
 // Soroban
 export { ContractEventFeed } from "./ContractEventFeed";
+export { ContractInteractionDebugger } from "./ContractInteractionDebugger";
 export { SorobanInvokeButton } from "./SorobanInvokeButton";
 export { SorobanPanel } from "./SorobanPanel";
 
@@ -101,6 +133,7 @@ export type { RewardsPanelProps } from "./RewardsPanel";
 export { RewardsPanel } from "./RewardsPanel";
 export type { StakingDashboardProps } from "./StakingDashboard";
 export { StakingDashboard } from "./StakingDashboard";
+export { SwapExecutionTracker } from "./SwapExecutionTracker";
 export { SwapRoute } from "./SwapRoute";
 export type { PieChartProps, PieSlice } from "./ui/PieChart";
 export { PieChart } from "./ui/PieChart";
@@ -141,6 +174,7 @@ export {
   weightedAverageSlippage,
 } from "../lib/rebalancer";
 export { QRCode } from "./QRCode";
+export { SwapSimulator } from "./SwapSimulator";
 
 // Staking utilities
 export type {
@@ -150,7 +184,7 @@ export type {
   DelegationChangeResult,
   RewardEvent,
   RewardScheduleEntry,
-  SortDirection,
+  SortDirection as StakingSortDirection,
   Validator,
   ValidatorFilter,
   ValidatorSortField,
@@ -179,11 +213,26 @@ export {
   validateDelegationAmount,
 } from "../lib/staking";
 
+// Wallet Status
+export { WalletStatusBadge } from "./WalletStatusBadge";
+
+// Transaction Fee Calculator
+export { TransactionFeeCalculator } from "./TransactionFeeCalculator";
+
+// Contract Interaction Builder
+export type { ContractSpec } from "./ContractInteractionBuilder";
+export { ContractInteractionBuilder } from "./ContractInteractionBuilder";
+
+// Account Balance Chart
+export { AccountBalanceChart } from "./AccountBalanceChart";
+
 // Providers and hooks
 export { SorokitProvider } from "../context/SorokitProvider";
 export { useSorokit } from "../context/useSorokit";
 
 // Types
+export type { Toast, ToastType } from "../context/ToastContext";
+export { ToastProvider, useToast } from "../context/ToastContext";
 export type {
   AccountData,
   Balance,
@@ -191,13 +240,19 @@ export type {
   ContractEvent,
   GroupedTransaction,
   InvokeParams,
+  JsonValue,
   NetworkInfo,
   Nft,
   NftAttribute,
   NftCollection,
   NftMetadata,
   Operation,
+  SorobanScVal,
   TimelineFilter,
   TimelineGroup,
   Transaction,
+  TransactionParams,
 } from "../lib/client";
+export { ToastContainer } from "./ui/Toast";
+export type { TooltipProps } from "./ui/Tooltip";
+export { Tooltip } from "./ui/Tooltip";

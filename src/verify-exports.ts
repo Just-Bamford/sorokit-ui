@@ -21,9 +21,7 @@ import {
   type TimelineFilter,
   type TimelineGroup,
   type Transaction,
-  AllowanceManager,
 } from "./components/index";
-
 
 // Dummy usage to prevent unused warnings if strictly checked
 console.log({

@@ -2,6 +2,7 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import { createDefaultFilter } from "@/lib/staking";
+
 import { ValidatorSearch } from "./ValidatorSearch";
 
 function renderSearch(

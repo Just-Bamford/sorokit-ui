@@ -1,32 +1,41 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
 
-import { useSorokit } from '@/context/useSorokit';
-import { getClient } from '@/lib/client';
+import { useSorokit } from "@/context/useSorokit";
+import { getClient } from "@/lib/client";
 
-import { TransactionPanel } from './TransactionPanel';
+import { TransactionPanel } from "./TransactionPanel";
 
-vi.mock('@/lib/client', () => ({
+vi.mock("@/lib/client", () => ({
   getClient: vi.fn(),
 }));
 
-vi.mock('@/context/useSorokit', () => ({
+vi.mock("@/context/useSorokit", () => ({
   useSorokit: vi.fn(),
 }));
 
-describe('TransactionPanel integration', () => {
-  it('submits payment with correct payload', async () => {
-    const mockSubmit = vi.fn().mockResolvedValue({ data: { hash: 'txhash', ledger: 1 }, error: null });
+describe("TransactionPanel integration", () => {
+  it("submits payment with correct payload", async () => {
+    const mockSubmit = vi
+      .fn()
+      .mockResolvedValue({ data: { hash: "txhash", ledger: 1 }, error: null });
     vi.mocked(getClient).mockReturnValue({
       transaction: {
         submit: mockSubmit,
-        estimateFee: vi.fn().mockResolvedValue({ data: { baseFee: '100', recommended: '100' }, error: null }),
+        estimateFee: vi
+          .fn()
+          .mockResolvedValue({
+            data: { baseFee: "100", recommended: "100" },
+            error: null,
+          }),
       },
-    } as any);
+    } as unknown as ReturnType<typeof getClient>);
 
-    (useSorokit as any).mockReturnValue({
+    (
+      useSorokit as unknown as { mockReturnValue: (value: unknown) => void }
+    ).mockReturnValue({
       isConnected: true,
-      address: 'GABCDEF1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF123456',
+      address: "GABCDEF1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF123456",
       connectWallet: vi.fn(),
       disconnectWallet: vi.fn(),
       error: null,
@@ -35,16 +44,22 @@ describe('TransactionPanel integration', () => {
 
     render(<TransactionPanel />);
 
-    const destInput = screen.getByLabelText('Destination Address');
-    const amountInput = screen.getByLabelText('Amount (XLM)');
-    const submitBtn = screen.getByRole('button', { name: 'Send Payment' });
+    const destInput = screen.getByLabelText("Destination Address");
+    const amountInput = screen.getByLabelText("Amount (XLM)");
+    const submitBtn = screen.getByRole("button", { name: "Send Payment" });
 
-    fireEvent.change(destInput, { target: { value: 'GCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC' } });
-    fireEvent.change(amountInput, { target: { value: '10' } });
+    fireEvent.change(destInput, {
+      target: {
+        value: "GCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC",
+      },
+    });
+    fireEvent.change(amountInput, { target: { value: "10" } });
     fireEvent.click(submitBtn);
 
-    await waitFor(() => screen.getByRole('dialog', { name: /confirm transaction/i }));
-    fireEvent.click(screen.getByRole('button', { name: /confirm & sign/i }));
+    await waitFor(() =>
+      screen.getByRole("dialog", { name: /confirm transaction/i }),
+    );
+    fireEvent.click(screen.getByRole("button", { name: /confirm & sign/i }));
 
     await waitFor(() => expect(mockSubmit).toHaveBeenCalledTimes(1));
     expect(mockSubmit).toHaveBeenCalledWith(
@@ -52,7 +67,7 @@ describe('TransactionPanel integration', () => {
         destination: expect.any(String),
         amount: expect.any(String),
         source: expect.any(String),
-      })
+      }),
     );
   });
 });

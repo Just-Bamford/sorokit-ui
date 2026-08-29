@@ -7,9 +7,9 @@ import { ArrowRight01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 
 import { Badge } from "@/components/ui/Badge";
-import { cn } from "@/lib/utils";
 import type { RebalanceRecord } from "@/lib/rebalancer";
-import { formatUsd, formatPct } from "@/lib/rebalancer";
+import { formatPct,formatUsd } from "@/lib/rebalancer";
+import { cn } from "@/lib/utils";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 

@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "type": "module",
   "description": "React components for Stellar/Soroban development",
-  "main": "dist/sorokit-ui.cjs.js",
+  "main": "dist/sorokit-ui.cjs",
   "module": "dist/sorokit-ui.es.js",
   "types": "dist/components/index.d.ts",
   "files": [
@@ -27,7 +27,7 @@
     ".": {
       "types": "./dist/components/index.d.ts",
       "import": "./dist/sorokit-ui.es.js",
-      "require": "./dist/sorokit-ui.cjs.js"
+      "require": "./dist/sorokit-ui.cjs"
     },
     "./styles": "./dist/style.css"
   },
@@ -41,6 +41,8 @@
     "test:coverage": "vitest --coverage",
     "test:exports": "tsc -p tsconfig.test-exports.json",
     "lint": "eslint . --ext .ts,.tsx",
+    "typecheck": "tsc --noEmit",
+    "typecheck:watch": "tsc --noEmit --watch",
     "type-check": "tsc --noEmit",
     "size": "npm run build && size-limit"
   },
@@ -58,21 +60,24 @@
     "@tailwindcss/vite": "^4.2.4",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "lightweight-charts": "^5.2.0",
     "lucide-react": "^1.14.0",
     "qrcode": "1.5.4",
     "react": "^19.2.5",
     "react-dom": "^19.2.5",
+    "react-json-view-lite": "^2.5.0",
     "sorokit-core": ">=0.1.0",
     "tailwind-merge": "^3.5.0",
-    "tailwindcss": "^4.0.0"
+    "tailwindcss": "^3.0.0"
   },
   "devDependencies": {
     "@axe-core/cli": "^4.12.1",
     "@eslint/js": "^10.0.1",
     "@size-limit/preset-small-lib": "^12.1.0",
-    "@testing-library/dom": "^10.4.0",
+    "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
     "@types/node": "^24.12.2",
     "@types/qrcode": "^1.5.6",
     "@types/react": "^19.2.14",
@@ -95,14 +100,34 @@
     {
       "name": "ES module (gzip)",
       "path": "dist/sorokit-ui.es.js",
-      "limit": "66 kB",
-      "gzip": true
+      "limit": "150 kB",
+      "gzip": true,
+      "ignore": [
+        "react",
+        "react-dom",
+        "lightweight-charts",
+        "lucide-react",
+        "@hugeicons/core-free-icons",
+        "@hugeicons/react",
+        "qrcode",
+        "sorokit-core"
+      ]
     },
     {
       "name": "CommonJS (gzip)",
-      "path": "dist/sorokit-ui.cjs.js",
-      "limit": "66 kB",
-      "gzip": true
+      "path": "dist/sorokit-ui.cjs",
+      "limit": "150 kB",
+      "gzip": true,
+      "ignore": [
+        "react",
+        "react-dom",
+        "lightweight-charts",
+        "lucide-react",
+        "@hugeicons/core-free-icons",
+        "@hugeicons/react",
+        "qrcode",
+        "sorokit-core"
+      ]
     }
   ],
   "peerDependencies": {

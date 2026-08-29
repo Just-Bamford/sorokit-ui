@@ -13,7 +13,7 @@
 
 import {
   Award01Icon,
-  Reload01Icon,
+  Refresh01Icon,
   Task01Icon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
@@ -22,31 +22,31 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { DelegationRow } from "@/components/DelegationRow";
 import { RewardHistory } from "@/components/RewardHistory";
 import { RewardsPanel } from "@/components/RewardsPanel";
+import { Badge } from "@/components/ui/Badge";
 import { ValidatorCard } from "@/components/ValidatorCard";
 import { ValidatorSearch } from "@/components/ValidatorSearch";
-import { Badge } from "@/components/ui/Badge";
 import { useSorokit } from "@/context/useSorokit";
-import { cn } from "@/lib/utils";
 import type {
-  Delegation,
   DailyReward,
+  Delegation,
   RewardEvent,
   RewardScheduleEntry,
   Validator,
   ValidatorFilter,
 } from "@/lib/staking";
 import {
-  MOCK_DELEGATIONS,
-  MOCK_REWARD_SCHEDULE,
-  MOCK_VALIDATORS,
   aggregateDailyRewards,
   createDefaultFilter,
   filterValidators,
   formatXlm,
   generateMockRewardHistory,
+  MOCK_DELEGATIONS,
+  MOCK_REWARD_SCHEDULE,
+  MOCK_VALIDATORS,
   totalClaimableXlm,
   totalDelegatedXlm,
 } from "@/lib/staking";
+import { cn } from "@/lib/utils";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -301,7 +301,7 @@ export function StakingDashboard({
               aria-label="Refresh staking data"
             >
               <HugeiconsIcon
-                icon={Reload01Icon}
+                icon={Refresh01Icon}
                 size={14}
                 color="currentColor"
                 strokeWidth={1.5}

@@ -127,6 +127,19 @@ describe("AccountCard", () => {
   });
 });
 
+function computeInitials(address: string): string {
+  const lastFourChars = address.slice(-4);
+  const charCode1 = lastFourChars.charCodeAt(0);
+  const charCode2 = lastFourChars.charCodeAt(1);
+  const charCode3 = lastFourChars.charCodeAt(2);
+  const charCode4 = lastFourChars.charCodeAt(3);
+  const total = charCode1 + charCode2 + charCode3 + charCode4;
+  const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  const char1 = alphabet[total % 26];
+  const char2 = alphabet[(total + charCode1) % 26];
+  return `${char1}${char2}`;
+}
+
 import { AccountCardCompact } from "./AccountCard";
 
 describe("AccountCardCompact", () => {
@@ -143,14 +156,37 @@ describe("AccountCardCompact", () => {
     expect(container).toBeEmptyDOMElement();
   });
 
-  it("shows the first two characters of the address as the avatar (uppercase)", () => {
+  it("shows avatar initials derived from the last 4 characters of the address", () => {
     const address = "GAAZI4TCR3TY5OJHCTJC2A4QSY6CJWJH5IAJTGKIN2ER7LBNVKOCCWNA";
     vi.mocked(useSorokit).mockReturnValue({
       address,
     } as unknown as ReturnType<typeof useSorokit>);
 
     render(<AccountCardCompact />);
-    expect(screen.getByText("GA")).toBeInTheDocument();
+    const expectedInitials = computeInitials(address);
+    expect(screen.getByText(expectedInitials)).toBeInTheDocument();
+  });
+
+  it("displays the full account address in the title attribute", () => {
+    const address = "GAAZI4TCR3TY5OJHCTJC2A4QSY6CJWJH5IAJTGKIN2ER7LBNVKOCCWNA";
+    vi.mocked(useSorokit).mockReturnValue({
+      address,
+    } as unknown as ReturnType<typeof useSorokit>);
+
+    render(<AccountCardCompact />);
+    expect(screen.getByRole("button")).toHaveAttribute("title", address);
+  });
+
+  it("calls onNavigate when clicked", () => {
+    const address = "GAAZI4TCR3TY5OJHCTJC2A4QSY6CJWJH5IAJTGKIN2ER7LBNVKOCCWNA";
+    const onNavigate = vi.fn();
+    vi.mocked(useSorokit).mockReturnValue({
+      address,
+    } as unknown as ReturnType<typeof useSorokit>);
+
+    render(<AccountCardCompact onNavigate={onNavigate} />);
+    fireEvent.click(screen.getByRole("button"));
+    expect(onNavigate).toHaveBeenCalledWith("account");
   });
 
   it("displays the truncated address", () => {

@@ -1,6 +1,7 @@
 
 
 :root {
+  --sorokit-nav-height: 60px;
   --color-brand: #55852b;
   --color-brand-hover: #426625;
   --color-brand-dim: #17260d;

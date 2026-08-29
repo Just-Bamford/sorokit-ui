@@ -5,9 +5,6 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  MOCK_DELEGATIONS,
-  MOCK_VALIDATORS,
-  REWARD_HISTORY_DAYS,
   aggregateDailyRewards,
   createDefaultFilter,
   estimateDelegationFeeXlm,
@@ -15,6 +12,9 @@ import {
   formatPct,
   formatXlm,
   generateMockRewardHistory,
+  MOCK_DELEGATIONS,
+  MOCK_VALIDATORS,
+  REWARD_HISTORY_DAYS,
   totalClaimableXlm,
   totalDelegatedXlm,
   totalPendingXlm,

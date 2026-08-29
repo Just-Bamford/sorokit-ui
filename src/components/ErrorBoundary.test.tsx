@@ -171,6 +171,70 @@ describe("ErrorBoundary", () => {
     expect(screen.getByText("Mounted successfully")).toBeInTheDocument();
   });
 
+  it("calls onRetry when the user clicks try again", () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    const onRetry = vi.fn();
+
+    render(
+      <ErrorBoundary onRetry={onRetry}>
+        <ThrowError />
+      </ErrorBoundary>
+    );
+
+    expect(onRetry).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole("button", { name: /try again/i }));
+
+    expect(onRetry).toHaveBeenCalledTimes(1);
+  });
+
+  it("calls onRetry from a custom fallback's reset callback", () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    const onRetry = vi.fn();
+
+    render(
+      <ErrorBoundary
+        onRetry={onRetry}
+        fallback={(_error, reset) => (
+          <button onClick={reset}>Reset Custom</button>
+        )}
+      >
+        <ThrowError />
+      </ErrorBoundary>
+    );
+
+    fireEvent.click(screen.getByText("Reset Custom"));
+
+    expect(onRetry).toHaveBeenCalledTimes(1);
+  });
+
+  it("runs onRetry before children re-mount so the retry uses fresh state", () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+
+    let clientReady = false;
+    const reinitialise = vi.fn(() => {
+      clientReady = true;
+    });
+
+    const NeedsClient = () => {
+      if (!clientReady) throw new Error("Client not initialized");
+      return <div data-testid="ready">Client ready</div>;
+    };
+
+    render(
+      <ErrorBoundary onRetry={reinitialise}>
+        <NeedsClient />
+      </ErrorBoundary>
+    );
+
+    expect(screen.getByText("Something went wrong")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: /try again/i }));
+
+    expect(reinitialise).toHaveBeenCalledTimes(1);
+    expect(screen.getByTestId("ready")).toBeInTheDocument();
+  });
+
   it("applies scoped container styling when isolate is true", () => {
     vi.spyOn(console, "error").mockImplementation(() => {});
 
@@ -186,5 +250,67 @@ describe("ErrorBoundary", () => {
     expect(scopedFallback).toHaveClass("rounded-xl");
     expect(scopedFallback).toHaveClass("border");
     expect(scopedFallback).toHaveClass("min-h-[260px]");
+  });
+
+  describe("supportUrl link (#332)", () => {
+    it("renders a 'Report this issue' link when supportUrl is provided", () => {
+      vi.spyOn(console, "error").mockImplementation(() => {});
+
+      render(
+        <ErrorBoundary supportUrl="https://github.com/Sorokit/ui/issues">
+          <ThrowError />
+        </ErrorBoundary>
+      );
+
+      const link = screen.getByRole("link", { name: /report this issue/i });
+      expect(link).toBeInTheDocument();
+      expect(link).toHaveAttribute("href", "https://github.com/Sorokit/ui/issues");
+      expect(link).toHaveAttribute("target", "_blank");
+      expect(link).toHaveAttribute("rel", "noopener noreferrer");
+    });
+
+    it("does not render a 'Report this issue' link when supportUrl is not provided", () => {
+      vi.spyOn(console, "error").mockImplementation(() => {});
+
+      render(
+        <ErrorBoundary>
+          <ThrowError />
+        </ErrorBoundary>
+      );
+
+      expect(screen.queryByRole("link", { name: /report this issue/i })).not.toBeInTheDocument();
+    });
+  });
+
+  describe("dev-mode component stack (#332)", () => {
+    it("shows the component stack in a <details> element in dev mode", () => {
+      vi.stubEnv("DEV", true);
+      vi.spyOn(console, "error").mockImplementation(() => {});
+
+      render(
+        <ErrorBoundary>
+          <ThrowError />
+        </ErrorBoundary>
+      );
+
+      const details = screen.getByText("Show component stack").closest("details");
+      expect(details).toBeInTheDocument();
+      const pre = details!.querySelector("pre");
+      expect(pre).toBeInTheDocument();
+      expect(pre!.textContent).toContain("ThrowError");
+    });
+
+    it("does not show the component stack in production mode", () => {
+      vi.stubEnv("DEV", false);
+      vi.spyOn(console, "error").mockImplementation(() => {});
+
+      render(
+        <ErrorBoundary>
+          <ThrowError />
+        </ErrorBoundary>
+      );
+
+      expect(screen.queryByText("Show component stack")).not.toBeInTheDocument();
+    });
   });
 });

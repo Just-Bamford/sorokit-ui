@@ -2,6 +2,7 @@ import { act, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { describe, expect, it, vi } from "vitest";
 
 import { MOCK_DELEGATIONS, MOCK_VALIDATORS } from "@/lib/staking";
+
 import { DelegationRow } from "./DelegationRow";
 
 const VALIDATOR = MOCK_VALIDATORS[0]; // Alpha Staking

@@ -1,5 +1,6 @@
 import { Cancel01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
+import { useEffect, useRef } from "react";
 
 import heroImg from "@/assets/hero.png";
 import { Button } from "@/components/ui/Button";
@@ -14,13 +15,24 @@ const SUPPORTED_WALLETS = [
 
 export function ConnectScreen() {
   const { connectWallet, isConnecting, error, clearError } = useSorokit();
+  const connectButtonRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    if (!isConnecting) {
+      connectButtonRef.current?.focus();
+    }
+  }, [isConnecting]);
+
+  useEffect(() => {
+    document.title = "Connect — Sorokit";
+  }, []);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-base px-4">
       <div className="w-full max-w-[400px] flex flex-col items-center gap-8">
         {/* Logo */}
         <div className="flex flex-col items-center gap-4">
-          <div className="w-14 h-14 rounded-2xl bg-brand flex items-center justify-center ">
+          <div className="w-14 h-14 rounded-2xl bg-brand flex items-center justify-center">
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
               <path
                 d="M5 12C5 8.13 8.13 5 12 5C15.87 5 19 8.13 19 12C19 15.87 15.87 19 12 19"
@@ -37,6 +49,7 @@ export function ConnectScreen() {
               <circle cx="12" cy="12" r="1.5" fill="white" />
             </svg>
           </div>
+
           <div className="text-center">
             <h1 className="text-[22px] font-semibold text-ink tracking-tight">
               sorokit
@@ -47,7 +60,7 @@ export function ConnectScreen() {
           </div>
         </div>
 
-        {/* Hero image — hidden on short viewports so the connect button stays above the fold */}
+        {/* Hero image */}
         <img
           src={heroImg}
           alt="sorokit wallet dashboard preview"
@@ -60,17 +73,21 @@ export function ConnectScreen() {
             <h2 className="text-[18px] font-semibold text-ink tracking-tight">
               Connect Wallet
             </h2>
+
             <p className="text-[13px] text-ink-3 mt-2 leading-relaxed">
               Connect your Stellar wallet to access the dashboard and manage
               your assets.
             </p>
           </div>
+
           <div className="px-5 py-5 flex flex-col gap-4">
             {error && (
               <div className="flex items-start justify-between gap-3 rounded-lg bg-error-dim-muted border border-error-dim px-4 py-3">
                 <p className="text-[13px] text-red">{error}</p>
+
                 <button
                   onClick={clearError}
+                  aria-label="Dismiss error"
                   className="text-red opacity-50 hover:opacity-100 shrink-0 mt-0.5 transition-opacity"
                 >
                   <HugeiconsIcon
@@ -82,7 +99,9 @@ export function ConnectScreen() {
                 </button>
               </div>
             )}
+
             <Button
+              ref={connectButtonRef}
               size="lg"
               loading={isConnecting}
               onClick={connectWallet}
@@ -90,17 +109,19 @@ export function ConnectScreen() {
             >
               {isConnecting ? "Connecting…" : "Connect Wallet"}
             </Button>
+
             {isConnecting && (
               <p className="text-[12px] text-ink-3 text-center">
                 Connecting to your wallet…
               </p>
             )}
 
-            {/* Wallet options — auto-detects whichever extension is installed */}
+            {/* Wallet options */}
             <div className="flex flex-col gap-2">
               <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-ink-4 text-center">
                 Supported wallets
               </p>
+
               <div className="grid grid-cols-4 gap-2">
                 {SUPPORTED_WALLETS.map((wallet) => (
                   <button
@@ -119,6 +140,7 @@ export function ConnectScreen() {
                     >
                       {wallet.initial}
                     </span>
+
                     <span className="text-[10px] text-ink-3 truncate w-full text-center">
                       {wallet.name}
                     </span>
@@ -134,14 +156,15 @@ export function ConnectScreen() {
                   ▾
                 </span>
               </summary>
+
               <ul className="mt-3 flex flex-col gap-2 text-[12px] text-ink-3 leading-relaxed list-disc pl-4">
                 <li>
-                  A Stellar wallet stores the keys that control your account
-                  and lets you approve transactions.
+                  A Stellar wallet stores the keys that control your account and
+                  lets you approve transactions.
                 </li>
                 <li>
-                  It never leaves your device — sorokit only asks it to sign
-                  transactions, it can't move funds on its own.
+                  It never leaves your device—sorokit only asks it to sign
+                  transactions; it can't move funds on its own.
                 </li>
                 <li>
                   Don't have one yet? Install Freighter, xBull, Lobstr, or

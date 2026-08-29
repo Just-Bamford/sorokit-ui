@@ -5,6 +5,30 @@
  * No direct blockchain logic lives in the UI -- everything goes through sorokit-core.
  */
 
+/** Parameters accepted by the transaction submission endpoint. */
+export interface TransactionParams {
+  source: string;
+  destination: string;
+  amount: string;
+  asset: string;
+  memoType: "none" | "text" | "id";
+  memo?: string;
+}
+
+/** Result status shared by async client methods that return a request state. */
+export type RequestStatus = "idle" | "loading" | "success" | "error";
+
+/** A Soroban XDR value produced by @stellar/stellar-sdk. */
+export type SorobanScVal = object;
+
+/** Values representable in JSON responses from the Soroban API. */
+export type JsonValue =
+  | string
+  | number
+  | boolean
+  | null
+  | JsonValue[]
+  | { [key: string]: JsonValue };
 export type GasPriceData = {
   baseFee: string;
   gasPrice: string;
@@ -39,7 +63,7 @@ export type SorokitClient = {
     connect: () => Promise<{
       data: { address: string } | null;
       error: string | null;
-      status: "idle" | "loading" | "success" | "error";
+      status: RequestStatus;
     }>;
     disconnect: () => Promise<void>;
     getAddress: () => Promise<{ data: string | null; error: string | null }>;
@@ -50,7 +74,7 @@ export type SorokitClient = {
     ) => Promise<{
       data: AccountData | null;
       error: string | null;
-      status: string;
+      status: RequestStatus;
     }>;
     getBalances: (
       address: string,
@@ -64,11 +88,11 @@ export type SorokitClient = {
   };
   transaction: {
     submit: (
-      tx: unknown,
+      tx: TransactionParams,
     ) => Promise<{
       data: TxResult | null;
       error: string | null;
-      status: string;
+      status: RequestStatus;
     }>;
     getStatus: (
       txHash: string,
@@ -104,10 +128,14 @@ export type SorokitClient = {
   soroban: {
     invokeContract: (
       params: InvokeParams,
-    ) => Promise<{ data: unknown; error: string | null; status: string }>;
+    ) => Promise<{ data: unknown; error: string | null; status: RequestStatus }>;
+    simulateContract: (
+      params: InvokeParams,
+    ) => Promise<{ data: unknown; error: string | null; status: RequestStatus }>;
     getEvents: (
       contractId: string,
       limit?: number,
+      fromLedger?: number,
     ) => Promise<{ data: ContractEvent[] | null; error: string | null }>;
   };
   network: {
@@ -116,7 +144,7 @@ export type SorokitClient = {
       error: string | null;
     }>;
     switchNetwork: (
-      network: NetworkName,
+      network: NetworkName | NetworkInfo,
     ) => Promise<{ data: NetworkInfo | null; error: string | null }>;
     getGasPrice: () => Promise<{
       data: GasPriceData | null;
@@ -170,7 +198,7 @@ export type SorokitClient = {
     }) => Promise<{
       data: TxResult | null;
       error: string | null;
-      status: string;
+      status: RequestStatus;
     }>;
     revokeAllowance: (params: {
       sourceAccount: string;
@@ -179,7 +207,7 @@ export type SorokitClient = {
     }) => Promise<{
       data: TxResult | null;
       error: string | null;
-      status: string;
+      status: RequestStatus;
     }>;
     estimateAllowanceFee: (params: {
       asset: string;
@@ -224,6 +252,9 @@ export type AccountData = {
   address: string;
   sequence: string;
   subentryCount: number;
+  thresholds?: { low: number; med: number; high: number; master: number };
+  homeDomain?: string;
+  createdAt?: string;
 };
 
 export type Balance = {
@@ -271,23 +302,29 @@ export type ContractEvent = {
   ledger: number;
   createdAt: string;
   topics: string[];
-  value: unknown;
+  value: JsonValue;
 };
 
 export type InvokeParams = {
   contractId: string;
   method: string;
-  args?: unknown[];
+  /**
+   * Soroban arguments may be XDR ScVal values from @stellar/stellar-sdk.
+   * unknown[] is also supported for adapters that serialize arguments later.
+   */
+  args?: SorobanScVal[] | unknown[];
   sourceAccount?: string;
 };
 
-export type NetworkName = "mainnet" | "testnet" | "futurenet" | "localnet";
+export type NetworkName = "mainnet" | "testnet" | "futurenet" | "localnet" | "custom" | (string & {});
 
 export type NetworkInfo = {
   name: NetworkName;
   passphrase: string;
   rpcUrl: string;
   horizonUrl: string;
+  ledger?: number;
+  status?: "online" | "degraded" | "offline" | string;
 };
 
 // ─── Allowance Types ───────────────────────────────────────────────────
@@ -339,9 +376,11 @@ export type BatchProgress = {
   batchId: string;
   completed: number;
   total: number;
+  failed?: number;
   percentage: number;
-  etaSeconds: number;
-  currentStatus: BatchEntryResult["status"];
+  etaSeconds?: number;
+  currentStatus?: BatchEntryResult["status"];
+  status?: "idle" | "processing" | "paused" | "completed" | "error" | "cancelled" | string;
 };
 
 // ─── NFT Types ────────────────────────────────────────────────────────────────

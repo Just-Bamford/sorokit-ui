@@ -5,13 +5,13 @@
  * and a tabular breakdown of individual reward events.
  */
 
-import { cn } from "@/lib/utils";
 import type { DailyReward, RewardEvent, Validator } from "@/lib/staking";
 import {
   formatXlm,
   REWARD_HISTORY_DAYS,
   totalRewardHistoryXlm,
 } from "@/lib/staking";
+import { cn } from "@/lib/utils";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 

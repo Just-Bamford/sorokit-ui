@@ -10,9 +10,9 @@
  * - Per-asset diff pill showing how much each target deviates from current
  */
 
-import { cn } from "@/lib/utils";
-import type { PortfolioAsset } from "@/lib/rebalancer";
 import { SLICE_COLORS } from "@/components/ui/PieChart";
+import type { PortfolioAsset } from "@/lib/rebalancer";
+import { cn } from "@/lib/utils";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 

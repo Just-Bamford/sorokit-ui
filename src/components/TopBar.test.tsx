@@ -112,4 +112,52 @@ describe("TopBar", () => {
     const { container } = render(<TopBar active="wallet" onMenuToggle={onMenuToggle} />);
     expect(container.querySelectorAll("h1")).toHaveLength(1);
   });
+
+  it("sets aria-expanded to true, aria-label to 'Close menu', and title tooltip to 'Close menu' when sidebarOpen is true", () => {
+    vi.mocked(useSorokit).mockReturnValue({
+      error: null,
+      clearError,
+    } as ReturnType<typeof useSorokit>);
+    render(<TopBar active="wallet" onMenuToggle={onMenuToggle} sidebarOpen={true} />);
+    const button = screen.getByRole("button", { name: /close menu/i });
+    expect(button).toHaveAttribute("aria-expanded", "true");
+    expect(button).toHaveAttribute("aria-label", "Close menu");
+    expect(button).toHaveAttribute("title", "Close menu");
+  });
+
+  it("sets aria-expanded to false, aria-label to 'Open menu', and title tooltip to 'Open menu' when sidebarOpen is false", () => {
+    vi.mocked(useSorokit).mockReturnValue({
+      error: null,
+      clearError,
+    } as ReturnType<typeof useSorokit>);
+    render(<TopBar active="wallet" onMenuToggle={onMenuToggle} sidebarOpen={false} />);
+    const button = screen.getByRole("button", { name: /open menu/i });
+    expect(button).toHaveAttribute("aria-expanded", "false");
+    expect(button).toHaveAttribute("aria-label", "Open menu");
+    expect(button).toHaveAttribute("title", "Open menu");
+  });
+
+  it("renders long Horizon error messages fully with word breaking without clipping", () => {
+    const longError = "Error: Horizon returned status 400 Bad Request: Transaction failed due to tx_failed op_bad_auth (Account G... has insufficient signatures to satisfy threshold)";
+    vi.mocked(useSorokit).mockReturnValue({
+      error: longError,
+      clearError,
+    } as ReturnType<typeof useSorokit>);
+    render(<TopBar active="wallet" onMenuToggle={onMenuToggle} />);
+    const errorEl = screen.getByText(longError);
+    expect(errorEl).toBeInTheDocument();
+    expect(errorEl.className).toContain("break-words");
+  });
+
+  it("uses min-h rather than fixed h for the header", () => {
+    vi.mocked(useSorokit).mockReturnValue({
+      error: null,
+      clearError,
+    } as ReturnType<typeof useSorokit>);
+    const { container } = render(<TopBar active="wallet" onMenuToggle={onMenuToggle} />);
+    const header = container.querySelector("header");
+    expect(header).toBeInTheDocument();
+    expect(header!.className).toContain("min-h-[60px]");
+    expect(header!.className).not.toMatch(/(?<!min-)h-\[/);
+  });
 });

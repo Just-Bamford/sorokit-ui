@@ -118,6 +118,47 @@ describe("WalletConnectButton", () => {
     expect(mockClearError).toHaveBeenCalledTimes(1);
   });
 
+  it("renders disconnect loading state when isDisconnecting is true", () => {
+    const mockDisconnect = vi.fn();
+    vi.mocked(useSorokit).mockReturnValue(mockUseSorokit({
+      isConnected: true,
+      address: "GABC1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ",
+      disconnectWallet: mockDisconnect,
+      isDisconnecting: true,
+    }));
+
+    render(<WalletConnectButton />);
+    // Click the wallet button to open the dropdown with disconnect option
+    fireEvent.click(screen.getByRole("button", { name: /wallet connected/i }));
+    expect(screen.getByText("Disconnecting…")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /disconnect/i })).toBeDisabled();
+  });
+
+  it("clears the error banner after a successful connect clears the error", () => {
+    // First render with an error (not connected state)
+    const { rerender } = render(<WalletConnectButton />);
+
+    // Simulate error state
+    vi.mocked(useSorokit).mockReturnValue(mockUseSorokit({
+      connectWallet: mockConnect,
+      error: "Previous error",
+      clearError: mockClearError,
+    }));
+    rerender(<WalletConnectButton />);
+    expect(screen.getByText("Previous error")).toBeInTheDocument();
+
+    // Simulate successful connect (error is cleared, connected state shown)
+    vi.mocked(useSorokit).mockReturnValue(mockUseSorokit({
+      isConnected: true,
+      address: "GABC1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ",
+      error: null,
+      clearError: mockClearError,
+    }));
+    rerender(<WalletConnectButton />);
+    expect(screen.queryByText("Previous error")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /wallet connected/i })).toBeInTheDocument();
+  });
+
   it("calls onOpenModal when connected address pill is clicked", () => {
     const mockOnOpenModal = vi.fn();
     const fullAddress = "GABC1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ";

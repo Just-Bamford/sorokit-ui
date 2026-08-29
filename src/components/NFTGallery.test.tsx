@@ -1,9 +1,9 @@
-import { fireEvent, render, screen, waitFor, act } from "@testing-library/react";
+import { act,fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { useSorokit } from "@/context/useSorokit";
-import { getClient } from "@/lib/client";
 import type { Nft } from "@/lib/client";
+import { getClient } from "@/lib/client";
 
 import { NFTCard, NFTGallery } from "./NFTGallery";
 

@@ -1,5 +1,5 @@
 import { fireEvent,render, screen } from "@testing-library/react";
-import { describe, expect,it } from "vitest";
+import { afterEach,describe, expect,it, vi } from "vitest";
 
 import { Input } from "./Input";
 
@@ -135,6 +135,52 @@ describe("Input", () => {
     expect(hintText.className).toContain("opacity-0");
   });
 
+  // ── Prefix / suffix ────────────────────────────────────────────────────
+  describe("prefix and suffix", () => {
+    it("renders a prefix element inside the input container", () => {
+      render(<Input prefix="$" placeholder="Amount" />);
+      expect(screen.getByText("$")).toBeInTheDocument();
+    });
+
+    it("renders a suffix element inside the input container", () => {
+      render(<Input suffix="USD" placeholder="Amount" />);
+      expect(screen.getByText("USD")).toBeInTheDocument();
+    });
+
+    it("renders both prefix and suffix simultaneously", () => {
+      render(<Input prefix="$" suffix=".00" placeholder="Amount" />);
+      expect(screen.getByText("$")).toBeInTheDocument();
+      expect(screen.getByText(".00")).toBeInTheDocument();
+    });
+  });
+
+  // ── Controlled value warning ────────────────────────────────────────────
+  describe("controlled value warning", () => {
+    it("warns via console.warn when value is provided without onChange", () => {
+      const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+      render(<Input value="readonly" />);
+      expect(warnSpy).toHaveBeenCalledTimes(1);
+      expect(warnSpy).toHaveBeenCalledWith(
+        expect.stringContaining("controlled"),
+      );
+      warnSpy.mockRestore();
+    });
+
+    it("does not warn when value and onChange are both provided", () => {
+      const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+      render(<Input value="editable" onChange={() => {}} />);
+      expect(warnSpy).not.toHaveBeenCalled();
+      warnSpy.mockRestore();
+    });
+
+    it("does not warn when value is undefined", () => {
+      const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+      render(<Input placeholder="uncontrolled" />);
+      expect(warnSpy).not.toHaveBeenCalled();
+      warnSpy.mockRestore();
+    });
+  });
+
   // ── Password toggle (#205) ──────────────────────────────────────────────
   describe("password toggle", () => {
     it("does not render a toggle button for non-password inputs", () => {
@@ -182,6 +228,69 @@ describe("Input", () => {
       expect(screen.getByText("Passphrase")).toBeInTheDocument();
       const errorText = screen.getByText("Too short");
       expect(errorText.className).toContain("opacity-100");
+    });
+  });
+
+  // ── hint testid (#311) ──────────────────────────────────────────────────
+  it("renders the hint paragraph with data-testid='input-hint'", () => {
+    render(<Input placeholder="Test Input" hint="Must be 8 characters long" />);
+    const hintEl = screen.getByTestId("input-hint");
+
+    expect(hintEl).toBeInTheDocument();
+    expect(hintEl).toHaveTextContent("Must be 8 characters long");
+  });
+
+  // ── prefix/suffix (#311) ─────────────────────────────────────────────────
+  describe("prefix/suffix", () => {
+    it("renders a prefix and suffix inside the input container", () => {
+      render(
+        <Input placeholder="Amount" prefix={<span>$</span>} suffix="XLM" />,
+      );
+
+      expect(screen.getByPlaceholderText("Amount")).toBeInTheDocument();
+      expect(screen.getByText("$")).toBeInTheDocument();
+      expect(screen.getByText("XLM")).toBeInTheDocument();
+    });
+
+    it("does not render prefix/suffix elements when not provided", () => {
+      render(<Input placeholder="Amount" />);
+
+      expect(screen.queryByText("$")).not.toBeInTheDocument();
+      expect(screen.queryByText("XLM")).not.toBeInTheDocument();
+    });
+  });
+
+  // ── controlled without onChange dev warning (#311) ──────────────────────
+  describe("controlled input without onChange warning", () => {
+    afterEach(() => {
+      vi.restoreAllMocks();
+    });
+
+    it("warns when value is provided without onChange or readOnly", () => {
+      const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+      render(<Input value="foo" />);
+
+      expect(warnSpy).toHaveBeenCalled();
+      warnSpy.mockRestore();
+    });
+
+    it("does not warn when onChange is also provided", () => {
+      const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+      render(<Input value="foo" onChange={() => {}} />);
+
+      expect(warnSpy).not.toHaveBeenCalled();
+      warnSpy.mockRestore();
+    });
+
+    it("does not warn when readOnly is true instead of onChange", () => {
+      const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+      render(<Input value="foo" readOnly />);
+
+      expect(warnSpy).not.toHaveBeenCalled();
+      warnSpy.mockRestore();
     });
   });
 });

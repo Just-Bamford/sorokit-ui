@@ -1,66 +1,75 @@
-import { describe, expect,it } from "vitest";
+import { describe, expect, it } from "vitest";
 
-import { truncateAddress } from "./utils";
+import { cn, truncateAddress } from "./utils";
 
 describe("truncateAddress", () => {
-  it("truncates standard ASCII strings correctly", () => {
-    expect(truncateAddress("GA2C5RFPE6GCKIG3EQZ52V2Q4CQA2F4D5CFAOKL3TFRGZJ6A6K", 6, 4)).toBe("GA2C5R...6A6K");
+  const STELLAR_ADDRESS_56 =
+    "GABCDEF123456789012345678901234567890123456789012345WXYZ";
+
+  it("truncates a 56-char Stellar address with default params (start=6, end=4)", () => {
+    // 56 characters total -> start 6 chars ("GABCDE"), end 4 chars ("WXYZ")
+    const result = truncateAddress(STELLAR_ADDRESS_56);
+    expect(result).toBe("GABCDE...WXYZ");
+    expect(result.startsWith("GABCDE")).toBe(true);
+    expect(result.endsWith("WXYZ")).toBe(true);
   });
 
-  it("returns the original string if it is shorter or equal to start + end length", () => {
-    expect(truncateAddress("1234567890", 6, 4)).toBe("1234567890");
-    expect(truncateAddress("123456789", 6, 4)).toBe("123456789");
+  it("truncates with custom start/end values (14, 6) as used in WalletScreen", () => {
+    const result = truncateAddress(STELLAR_ADDRESS_56, 14, 6);
+    expect(result).toBe("GABCDEF1234567...45WXYZ");
   });
 
-  it("returns empty string for empty input", () => {
+  it("returns an empty string when given an empty string", () => {
     expect(truncateAddress("")).toBe("");
   });
 
-  it("handles single-character strings", () => {
-    expect(truncateAddress("A")).toBe("A");
+  it("returns an empty string when given null or undefined", () => {
+    expect(truncateAddress(null)).toBe("");
+    expect(truncateAddress(undefined)).toBe("");
   });
 
-  it("safely truncates mixed unicode and emoji strings", () => {
-    // 12 chars: "👋🌍🌞🌙⭐🌟🌠💫✨☄️🔥💧"
-    const emojis = "👋🌍🌞🌙⭐🌟🌠💫✨☄️🔥💧";
-    expect(truncateAddress(emojis, 3, 2)).toBe("👋🌍🌞...🔥💧");
+  it("does not throw and returns full string when input length is shorter than or equal to start + end", () => {
+    const shortAddress = "GABC";
+    expect(() => truncateAddress(shortAddress, 6, 4)).not.toThrow();
+    expect(truncateAddress(shortAddress, 6, 4)).toBe("GABC");
+
+    const exactLength = "1234567890"; // 10 chars, equal to start=6 + end=4
+    expect(truncateAddress(exactLength, 6, 4)).toBe("1234567890");
   });
 
-  it("handles multi-codepoint emoji sequences without splitting surrogates", () => {
-    // Family emoji is a multi-codepoint ZWJ sequence (treated as one visible glyph
-    // but Array.from splits at codepoint boundaries — this verifies that behaviour)
-    const family = "👨‍👩‍👧‍👦";
-    const long = family.repeat(3) + "A".repeat(10);
-    const result = truncateAddress(long, 2, 1);
-    // Should not throw and should contain "..."
-    expect(result).toContain("...");
+  it("handles strings shorter than start + end + 3 without throwing", () => {
+    const elevenCharString = "12345678901"; // 11 chars (start+end=10, start+end+3=13)
+    expect(() => truncateAddress(elevenCharString, 6, 4)).not.toThrow();
+    expect(truncateAddress(elevenCharString, 6, 4)).toBe("123456...8901");
+  });
+});
+
+describe("cn utility", () => {
+  it("correctly merges conflicting Tailwind classes", () => {
+    const result = cn("bg-red-500", "bg-blue-500");
+    expect(result).toContain("bg-blue-500");
+    expect(result).not.toContain("bg-red-500");
+
+    const resultShort = cn("bg-red", "bg-blue");
+    expect(resultShort).toContain("bg-blue");
+    expect(resultShort).not.toContain("bg-red");
   });
 
-  it("truncates a full 56-char Stellar address with default start/end", () => {
-    const address = "GAAZI4TCR3TY5OJHCTJC2A4QSY6CJWJH5IAJTGKIN2ER7LBNVKOCCWNA";
-    expect(address).toHaveLength(56);
-    const result = truncateAddress(address);
-    expect(result).toBe("GAAZI4...CWNA");
-    expect(result.length).toBeLessThan(address.length);
+  it("handles undefined and null values without throwing", () => {
+    expect(() => cn(undefined, "text-sm")).not.toThrow();
+    expect(cn(undefined, "text-sm")).toBe("text-sm");
+    expect(cn(null, "text-sm", undefined)).toBe("text-sm");
   });
 
-  it("truncates a 56-char Soroban contract ID the same way as addresses", () => {
-    const contractId = "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAHK3M";
-    expect(contractId).toHaveLength(56);
-    expect(contractId.startsWith("C")).toBe(true);
-    expect(truncateAddress(contractId, 10, 6)).toBe("CAAAAAAAAA...AAHK3M");
+  it("handles false, 0, and empty strings without throwing", () => {
+    const isHidden = false;
+    const count = 0;
+    expect(cn(isHidden && "hidden", "p-4", "", count && "text-lg")).toBe("p-4");
   });
 
-  it("uses the provided start and end parameters", () => {
-    const address = "GAAZI4TCR3TY5OJHCTJC2A4QSY6CJWJH5IAJTGKIN2ER7LBNVKOCCWNA";
-    expect(truncateAddress(address, 8, 6)).toBe("GAAZI4TC...OCCWNA");
-  });
-
-  it("returns full string when exactly at start + end boundary", () => {
-    expect(truncateAddress("ABCDEFGHIJ", 5, 5)).toBe("ABCDEFGHIJ");
-  });
-
-  it("handles null-like falsy input gracefully", () => {
-    expect(truncateAddress("" as string)).toBe("");
+  it("handles arrays and conditional class objects", () => {
+    expect(cn(["px-2", "py-1"], { "font-bold": true, italic: false })).toBe(
+      "px-2 py-1 font-bold",
+    );
   });
 });

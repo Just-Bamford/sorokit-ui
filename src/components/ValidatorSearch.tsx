@@ -11,9 +11,8 @@ import {
 import { HugeiconsIcon } from "@hugeicons/react";
 
 import { Button } from "@/components/ui/Button";
-import { Input } from "@/components/ui/Input";
-import { cn } from "@/lib/utils";
 import type { ValidatorFilter, ValidatorSortField } from "@/lib/staking";
+import { cn } from "@/lib/utils";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -56,14 +55,18 @@ export function ValidatorSearch({
 
   return (
     <div className={cn("flex flex-col gap-3", className)}>
-
       {/* ── Search bar ──────────────────────────────────────────────────────── */}
       <div className="relative">
         <span
           aria-hidden="true"
           className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-3 pointer-events-none"
         >
-          <HugeiconsIcon icon={Search01Icon} size={14} color="currentColor" strokeWidth={1.5} />
+          <HugeiconsIcon
+            icon={Search01Icon}
+            size={14}
+            color="currentColor"
+            strokeWidth={1.5}
+          />
         </span>
         <input
           type="search"
@@ -127,7 +130,10 @@ export function ValidatorSearch({
             value={filter.minApy ?? ""}
             onChange={(e) =>
               patch({
-                minApy: e.target.value === "" ? undefined : parseFloat(e.target.value),
+                minApy:
+                  e.target.value === ""
+                    ? undefined
+                    : parseFloat(e.target.value),
               })
             }
             placeholder="0%"
@@ -158,7 +164,9 @@ export function ValidatorSearch({
             onChange={(e) =>
               patch({
                 maxCommission:
-                  e.target.value === "" ? undefined : parseFloat(e.target.value),
+                  e.target.value === ""
+                    ? undefined
+                    : parseFloat(e.target.value),
               })
             }
             placeholder="100%"
@@ -206,7 +214,11 @@ export function ValidatorSearch({
             iconOnly
             onClick={toggleDirection}
             aria-label={`Sort ${filter.sortDirection === "desc" ? "ascending" : "descending"}`}
-            title={filter.sortDirection === "desc" ? "Sort ascending" : "Sort descending"}
+            title={
+              filter.sortDirection === "desc"
+                ? "Sort ascending"
+                : "Sort descending"
+            }
           >
             <span
               className={cn(
@@ -222,7 +234,11 @@ export function ValidatorSearch({
       </div>
 
       {/* ── Result count ────────────────────────────────────────────────────── */}
-      <p className="text-[11px] text-ink-3" aria-live="polite" aria-atomic="true">
+      <p
+        className="text-[11px] text-ink-3"
+        aria-live="polite"
+        aria-atomic="true"
+      >
         {filteredCount === totalCount
           ? `${totalCount} validator${totalCount !== 1 ? "s" : ""}`
           : `${filteredCount} of ${totalCount} validator${totalCount !== 1 ? "s" : ""}`}

@@ -5,6 +5,8 @@
  * Each slice supports an optional tooltip via `title` element.
  */
 
+import React from "react";
+
 import { cn } from "@/lib/utils";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -127,6 +129,44 @@ export function PieChart({
   const r = size / 2 - 2; // 2px padding so stroke doesn't clip
   const innerR = r * innerRadius;
 
+  // Generate a stable random ID outside of render for the legend
+   
+  const legendIdRef = React.useRef<string | null>(null);
+  if (legendIdRef.current == null) {
+    const randomPart = Array.from({ length: 5 }, () =>
+      // eslint-disable-next-line react-hooks/purity
+      Math.floor(Math.random() * 16).toString(16),
+    ).join("");
+    legendIdRef.current = `pie-legend-${randomPart}`;
+  }
+  // eslint-disable-next-line react-hooks/refs
+  const legendId = legendIdRef.current;
+
+  // Build arc segments.  Start at -90° (top) and go clockwise.
+  const segments = React.useMemo(() => {
+    const result: Array<{
+      slice: PieSlice;
+      color: string;
+      path: string;
+      pct: number;
+    }> = [];
+    let angle = -Math.PI / 2;
+    for (const [i, slice] of slices.entries()) {
+      const sweep = (slice.value / total) * (2 * Math.PI);
+      const start = angle;
+      const end = angle + sweep;
+      const pct = (slice.value / total) * 100;
+      const color = resolveColor(slice, i);
+      const path = arcPath(
+        { cx, cy, r, startAngle: start, endAngle: end },
+        innerR,
+      );
+      result.push({ slice, color, path, pct });
+      angle = end;
+    }
+    return result;
+  }, [slices, total, cx, cy, r, innerR]);
+
   // Empty state — render a grey placeholder ring
   if (total === 0 || slices.length === 0) {
     return (
@@ -148,36 +188,22 @@ export function PieChart({
             className="text-surface-2"
           />
           {centerLabel && (
-            <foreignObject x={innerR} y={innerR} width={innerR * 2} height={innerR * 2}>
-              <div
-                className="w-full h-full flex items-center justify-center text-center"
-              >
+            <foreignObject
+              x={innerR}
+              y={innerR}
+              width={innerR * 2}
+              height={innerR * 2}
+            >
+              <div className="w-full h-full flex items-center justify-center text-center">
                 {centerLabel}
               </div>
             </foreignObject>
           )}
         </svg>
-        {showLegend && (
-          <p className="text-[11px] text-ink-3">No data</p>
-        )}
+        {showLegend && <p className="text-[11px] text-ink-3">No data</p>}
       </div>
     );
   }
-
-  // Build arc segments.  Start at -90° (top) and go clockwise.
-  let angle = -Math.PI / 2;
-  const segments = slices.map((slice, i) => {
-    const sweep = (slice.value / total) * (2 * Math.PI);
-    const start = angle;
-    const end = angle + sweep;
-    angle = end;
-    const pct = (slice.value / total) * 100;
-    const color = resolveColor(slice, i);
-    const path = arcPath({ cx, cy, r, startAngle: start, endAngle: end }, innerR);
-    return { slice, color, path, pct };
-  });
-
-  const legendId = `pie-legend-${Math.random().toString(36).slice(2, 7)}`;
 
   return (
     <div className={cn("flex flex-col items-center gap-4", className)}>
@@ -231,7 +257,9 @@ export function PieChart({
               />
               <span className="text-[11px] text-ink-2">
                 {slice.label}{" "}
-                <span className="text-ink-3 tabular-nums">{pct.toFixed(1)}%</span>
+                <span className="text-ink-3 tabular-nums">
+                  {pct.toFixed(1)}%
+                </span>
               </span>
             </li>
           ))}

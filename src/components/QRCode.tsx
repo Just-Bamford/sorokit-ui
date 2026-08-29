@@ -41,10 +41,19 @@ export function QRCode({
   canvasBackground,
   canvasForeground,
 }: QRCodeProps) {
+  if (size <= 0) {
+    console.warn("QRCode size must be greater than 0, got", size);
+  }
+
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [renderError, setRenderError] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [prevProps, setPrevProps] = useState({ value, size, canvasBackground, canvasForeground });
+
+  // A zero or negative size gives the canvas invalid dimensions and renders as
+  // a broken box. Derived rather than stored so the spinner doesn't sit
+  // running while waiting on a draw that will never be attempted.
+  const hasInvalidSize = !size || size <= 0;
 
   if (
     prevProps.value !== value ||
@@ -58,6 +67,11 @@ export function QRCode({
   }
   useEffect(() => {
     if (renderError || !value) return;
+
+    if (hasInvalidSize) {
+      console.warn("[QRCode] size must be > 0");
+      return;
+    }
 
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -100,7 +114,7 @@ export function QRCode({
     return () => {
       active = false;
     };
-  }, [value, size, canvasBackground, canvasForeground, renderError]);
+  }, [value, size, canvasBackground, canvasForeground, renderError, hasInvalidSize]);
 
   return (
     <figure className={cn("flex flex-col items-center gap-3", className)}>
@@ -122,7 +136,7 @@ export function QRCode({
           </div>
         ) : (
           <>
-            {isLoading && (
+            {isLoading && !hasInvalidSize && (
               <div
                 className="flex items-center justify-center"
                 style={{ width: size, height: size }}

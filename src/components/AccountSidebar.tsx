@@ -43,7 +43,7 @@ import { AssetBadge } from "@/components/AssetBadge";
 import { Button } from "@/components/ui/Button";
 import { AssetRowSkeleton } from "@/components/ui/Skeleton";
 import { useSorokit } from "@/context/useSorokit";
-import { getClient, type Transaction } from "@/lib/client";
+import { type Transaction } from "@/lib/client";
 import { cn } from "@/lib/utils";
 
 import { TxRow } from "./TransactionHistory";
@@ -73,8 +73,8 @@ export function AccountSidebar({
     refreshAccount,
     disconnectWallet,
     network,
+    client,
   } = useSorokit();
-
   const [collapsed, setCollapsed] = useState(() => {
     if (typeof localStorage === "undefined") return false;
     return localStorage.getItem(COLLAPSED_STORAGE_KEY) === "true";
@@ -91,11 +91,11 @@ export function AccountSidebar({
   // connected address. Deferred via setTimeout(0), same pattern
   // SorokitProvider uses for its own data-loading effects.
   useEffect(() => {
-    if (!open || !address) return;
+    if (!open || !address || !client) return;
     let active = true;
     const timerId = window.setTimeout(() => {
       setTxLoading(true);
-      getClient()
+      client
         .transaction.getHistory(address, 1, RECENT_TX_LIMIT)
         .then(({ data }) => {
           if (!active) return;
@@ -109,7 +109,7 @@ export function AccountSidebar({
       active = false;
       window.clearTimeout(timerId);
     };
-  }, [open, address]);
+  }, [open, address, client]);
 
   // Poll account/balance data while the sidebar is open.
   useEffect(() => {

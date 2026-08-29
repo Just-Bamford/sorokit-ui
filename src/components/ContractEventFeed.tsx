@@ -39,13 +39,19 @@
  * @see {@link SorokitProvider} for setup
  * @see GitHub issue #8 for QR code scanner limitation
  */
-import { Refresh01Icon } from "@hugeicons/core-free-icons";
+import {
+  Activity01Icon,
+  AlertCircleIcon,
+  Copy01Icon,
+  Refresh01Icon,
+  Tick01Icon,
+} from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { Badge } from "@/components/ui/Badge";
+import { useSorokit } from "@/context/useSorokit";
 import type { ContractEvent } from "@/lib/client";
-import { getClient } from "@/lib/client";
 import { cn, truncateAddress } from "@/lib/utils";
 
 const EVENT_TYPE_VARIANT: Record<
@@ -59,6 +65,8 @@ const EVENT_TYPE_VARIANT: Record<
 };
 
 const DEFAULT_MAX_VALUE_LENGTH = 200;
+const TOPIC_PREVIEW_COUNT = 3;
+const HIGHLIGHT_DURATION_MS = 1500;
 
 function formatRelativeTime(fromMs: number, nowMs: number): string {
   const diff = Math.max(0, nowMs - fromMs);
@@ -101,12 +109,48 @@ function EventValue({
   );
 }
 
+function TopicTag({ topic }: { topic: string }) {
+  const [copied, setCopied] = useState(false);
+
+  async function handleCopy(e: React.MouseEvent) {
+    e.stopPropagation();
+    try {
+      await navigator.clipboard.writeText(topic);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      /* fallback */
+    }
+  }
+
+  return (
+    <span className="group inline-flex items-center gap-1 text-[10px] font-mono text-ink-3 bg-surface-2 rounded px-1.5 py-0.5 border border-line">
+      <span>{topic.length > 20 ? truncateAddress(topic, 8, 4) : topic}</span>
+      <button
+        type="button"
+        onClick={handleCopy}
+        title="Copy topic"
+        className="opacity-0 group-hover:opacity-100 hover:text-ink-1 transition-opacity cursor-pointer p-0.5"
+      >
+        <HugeiconsIcon
+          icon={copied ? Tick01Icon : Copy01Icon}
+          size={10}
+          color="currentColor"
+          strokeWidth={1.5}
+        />
+      </button>
+    </span>
+  );
+}
+
 function EventRow({
   event,
   maxValueLength,
+  isNew,
 }: {
   event: ContractEvent;
   maxValueLength: number;
+  isNew: boolean;
 }) {
   const variant = EVENT_TYPE_VARIANT[event.type] ?? "default";
   const time = new Date(event.createdAt).toLocaleTimeString([], {
@@ -114,9 +158,19 @@ function EventRow({
     minute: "2-digit",
     second: "2-digit",
   });
+  const [topicsExpanded, setTopicsExpanded] = useState(false);
+  const hiddenTopicCount = event.topics.length - TOPIC_PREVIEW_COUNT;
+  const visibleTopics = topicsExpanded
+    ? event.topics
+    : event.topics.slice(0, TOPIC_PREVIEW_COUNT);
 
   return (
-    <div className="flex items-start gap-3 px-5 py-3.5 border-b border-line last:border-0">
+    <div
+      className={cn(
+        "flex items-start gap-3 px-5 py-3.5 border-b border-line last:border-0",
+        isNew && "animate-highlight",
+      )}
+    >
       <div className="flex flex-col items-center gap-1 shrink-0 mt-0.5">
         <Badge variant={variant}>{event.type}</Badge>
         <span className="text-[10px] text-ink-4 font-mono">{time}</span>
@@ -131,15 +185,19 @@ function EventRow({
           </span>
         </div>
         {event.topics.length > 0 && (
-          <div className="flex flex-wrap gap-1">
-            {event.topics.map((t, i) => (
-              <span
-                key={i}
-                className="text-[10px] font-mono text-ink-3 bg-surface-2 rounded px-1.5 py-0.5 border border-line"
-              >
-                {t.length > 20 ? truncateAddress(t, 8, 4) : t}
-              </span>
+          <div className="flex flex-wrap items-center gap-1">
+            {visibleTopics.map((t, i) => (
+              <TopicTag key={i} topic={t} />
             ))}
+            {hiddenTopicCount > 0 && (
+              <button
+                type="button"
+                onClick={() => setTopicsExpanded((e) => !e)}
+                className="text-[10px] font-semibold text-brand hover:underline"
+              >
+                {topicsExpanded ? "Show less" : `+${hiddenTopicCount} more`}
+              </button>
+            )}
           </div>
         )}
         {event.value !== null && event.value !== undefined && (
@@ -161,6 +219,14 @@ export interface ContractEventFeedProps {
   filterTypes?: string[];
   /** Character length before an event value is truncated with a "Show more" toggle. */
   maxValueLength?: number;
+  /**
+   * Optional start ledger to fetch events from. When omitted, the feed
+   * requests the latest events from the network's current ledger. When set,
+   * `getEvents(...)` is called with this value as the third argument so
+   * consumers can page through historical event windows.
+   */
+  fromLedger?: number;
+  className?: string;
 }
 
 export function ContractEventFeed({
@@ -169,7 +235,10 @@ export function ContractEventFeed({
   limit = 10,
   filterTypes,
   maxValueLength = DEFAULT_MAX_VALUE_LENGTH,
+  fromLedger,
+  className,
 }: ContractEventFeedProps) {
+  const { client } = useSorokit();
   const [events, setEvents] = useState<ContractEvent[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -181,25 +250,76 @@ export function ContractEventFeed({
   );
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  // IDs highlighted as newly-arrived. `prevEventIdsRef` is the baseline from
+  // the previous successful load — `null` means no baseline yet, so the very
+  // first load doesn't flag every event as "new".
+  const [newEventIds, setNewEventIds] = useState<Set<string>>(new Set());
+  const prevEventIdsRef = useRef<Set<string> | null>(null);
+
+  // Drop the previous contract's events as soon as `contractId` changes.
+  // `load` only replaces `events` once the new fetch succeeds, so without this
+  // the old contract's events stay on screen — and survive outright if the new
+  // fetch errors. Adjusted during render rather than in an effect so no stale
+  // frame is committed.
+  const [prevContractId, setPrevContractId] = useState(contractId);
+  if (prevContractId !== contractId) {
+    setPrevContractId(contractId);
+    setEvents([]);
+    setError(null);
+    setLastUpdatedAt(null);
+    setNewEventIds(new Set());
+  }
+
+  useEffect(() => {
+    prevEventIdsRef.current = null;
+  }, [contractId]);
+
   const load = useCallback(async () => {
-    if (!contractId.trim()) return;
+    if (!contractId.trim() || !client) return;
     setLoading(true);
     try {
-      const { data, error: err } = await getClient().soroban.getEvents(
+      const { data, error: err } = await client.soroban.getEvents(
         contractId,
         limit,
+        fromLedger,
       );
       if (err) {
         setError(err);
+        setLoading(false);
         return;
       }
-      setEvents(data ?? []);
+      const newData = data ?? [];
+      if (prevEventIdsRef.current !== null) {
+        const baseline = prevEventIdsRef.current;
+        const addedIds = newData
+          .filter((e) => !baseline.has(e.id))
+          .map((e) => e.id);
+        if (addedIds.length > 0) {
+          setNewEventIds((prev) => new Set([...prev, ...addedIds]));
+          window.setTimeout(() => {
+            setNewEventIds((prev) => {
+              const next = new Set(prev);
+              addedIds.forEach((id) => next.delete(id));
+              return next;
+            });
+          }, HIGHLIGHT_DURATION_MS);
+        }
+      }
+      prevEventIdsRef.current = new Set(newData.map((e) => e.id));
+      setEvents(newData);
       setError(null);
       setLastUpdatedAt(Date.now());
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to load events");
     } finally {
       setLoading(false);
     }
-  }, [contractId, limit]);
+  }, [client, contractId, limit, fromLedger]);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setEvents([]);
+  }, [contractId]);
 
   useEffect(() => {
     const timerId = window.setTimeout(() => {
@@ -212,7 +332,7 @@ export function ContractEventFeed({
   }, [load]);
 
   useEffect(() => {
-    if (live && pollInterval > 0) {
+    if (live && pollInterval > 0 && contractId.trim() !== "") {
       intervalRef.current = setInterval(() => {
         void load();
       }, pollInterval);
@@ -222,7 +342,7 @@ export function ContractEventFeed({
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
-  }, [live, pollInterval, load]);
+  }, [live, pollInterval, load, contractId]);
 
   // Tick the relative "Last updated" label once a second while polling is active.
   useEffect(() => {
@@ -267,7 +387,7 @@ export function ContractEventFeed({
     activeTypes ? activeTypes.has(type) : true;
 
   return (
-    <div className="rounded-xl border border-line bg-surface overflow-hidden">
+    <div className={cn("rounded-xl border border-line bg-surface overflow-hidden", className)}>
       <div className="flex items-center justify-between px-5 py-4 border-b border-line">
         <div>
           <h3 className="text-[14px] font-semibold text-ink">
@@ -295,6 +415,35 @@ export function ContractEventFeed({
               {live ? "Live" : "Paused"}
             </button>
           )}
+          <button
+            type="button"
+            onClick={() => setEvents([])}
+            disabled={events.length === 0}
+            title="Clear events"
+            aria-label="Clear events"
+            className="px-2 py-1 rounded-lg text-[11px] font-semibold bg-surface-2 hover:bg-surface-3 text-ink-2 border border-line transition-colors disabled:opacity-40"
+          >
+            Clear
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              const jsonStr = JSON.stringify(events, null, 2);
+              const blob = new Blob([jsonStr], { type: "application/json" });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement("a");
+              a.href = url;
+              a.download = `contract-events-${contractId || "export"}.json`;
+              a.click();
+              URL.revokeObjectURL(url);
+            }}
+            disabled={events.length === 0}
+            title="Export JSON"
+            aria-label={`Export ${events.length} event${events.length === 1 ? "" : "s"} as JSON`}
+            className="px-2 py-1 rounded-lg text-[11px] font-semibold bg-surface-2 hover:bg-surface-3 text-ink-2 border border-line transition-colors disabled:opacity-40"
+          >
+            Export JSON
+          </button>
           <button
             onClick={() => void load()}
             disabled={loading}
@@ -336,7 +485,23 @@ export function ContractEventFeed({
       )}
 
       {error ? (
-        <p className="text-[13px] text-red text-center py-10">{error}</p>
+        <div className="flex flex-col items-center gap-3 px-5 py-10">
+          <HugeiconsIcon
+            icon={AlertCircleIcon}
+            size={32}
+            color="currentColor"
+            className="text-red"
+            strokeWidth={1.5}
+          />
+          <p className="text-[13px] text-red text-center">{error}</p>
+          <button
+            onClick={() => void load()}
+            disabled={loading}
+            className="px-3 py-1.5 rounded-lg text-[11px] font-semibold bg-red-dim text-red border border-red-dim-strong hover:bg-red-dim-strong transition-colors disabled:opacity-40"
+          >
+            Retry
+          </button>
+        </div>
       ) : loading && events.length === 0 ? (
         <div className="px-5 py-4 flex flex-col gap-3">
           {[1, 2, 3].map((i) => (
@@ -347,17 +512,38 @@ export function ContractEventFeed({
           ))}
         </div>
       ) : events.length === 0 ? (
-        <p className="text-[13px] text-ink-3 text-center py-10">
-          No events found
-        </p>
+        <div className="flex flex-col items-center gap-2 px-5 py-10">
+          <HugeiconsIcon
+            icon={Activity01Icon}
+            size={32}
+            color="currentColor"
+            className="text-ink-3"
+            strokeWidth={1.5}
+          />
+          <p className="text-[13px] text-ink-3 text-center">No events found</p>
+        </div>
       ) : filteredEvents.length === 0 ? (
-        <p className="text-[13px] text-ink-3 text-center py-10">
-          No events match the selected filters
-        </p>
+        <div className="flex flex-col items-center gap-2 px-5 py-10">
+          <HugeiconsIcon
+            icon={Activity01Icon}
+            size={32}
+            color="currentColor"
+            className="text-ink-3"
+            strokeWidth={1.5}
+          />
+          <p className="text-[13px] text-ink-3 text-center">
+            No events match the selected filters
+          </p>
+        </div>
       ) : (
         <div aria-live="polite">
           {filteredEvents.map((e) => (
-            <EventRow key={e.id} event={e} maxValueLength={maxValueLength} />
+            <EventRow
+              key={e.id}
+              event={e}
+              maxValueLength={maxValueLength}
+              isNew={newEventIds.has(e.id)}
+            />
           ))}
         </div>
       )}

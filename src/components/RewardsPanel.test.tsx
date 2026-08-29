@@ -6,6 +6,7 @@ import {
   MOCK_REWARD_SCHEDULE,
   MOCK_VALIDATORS,
 } from "@/lib/staking";
+
 import { RewardsPanel } from "./RewardsPanel";
 
 function renderPanel(

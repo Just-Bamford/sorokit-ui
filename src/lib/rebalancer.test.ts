@@ -1,27 +1,27 @@
 import { describe, expect, it } from "vitest";
 
+import type { AllocationDiff, PortfolioAsset, SwapSuggestion } from "./rebalancer";
 import {
   BASE_FEE_STROOPS,
-  DEFAULT_SWAP_FEE_PCT,
-  MIN_TRADE_USD,
-  SLIPPAGE_BASE_PCT,
   buildRebalanceRecord,
   computeAllocationDiffs,
   computeCurrentAllocations,
   createInitialExecution,
+  DEFAULT_SWAP_FEE_PCT,
   estimateSlippagePct,
   estimateSwapCostUsd,
   formatPct,
   formatUsd,
   generateSwapSuggestions,
   isTargetValid,
+  MIN_TRADE_USD,
   normaliseTargets,
+  SLIPPAGE_BASE_PCT,
   totalFeeStroops,
   totalRebalanceCostUsd,
   updateSwapStatus,
   weightedAverageSlippage,
 } from "./rebalancer";
-import type { AllocationDiff, PortfolioAsset, SwapSuggestion } from "./rebalancer";
 
 // ─── Fixtures ─────────────────────────────────────────────────────────────────
 

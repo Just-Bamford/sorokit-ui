@@ -10,23 +10,35 @@ interface Props {
   fallback?: (error: Error, reset: () => void) => ReactNode;
   /** Called when the boundary catches an error. */
   onError?: (error: Error, info: ErrorInfo) => void;
+  /**
+   * Called when the user retries, before the boundary clears its error state.
+   * Use it to re-attempt the work that failed — e.g. re-initialising the
+   * Sorokit client after `createSorokitClient()` threw — so the retried render
+   * has a working dependency instead of throwing again immediately.
+   */
+  onRetry?: () => void;
   /** Render fallback content as an in-page scoped panel instead of a full-page state. */
   isolate?: boolean;
+  /** Optional support URL shown in the default fallback. */
+  supportUrl?: string;
 }
 
 interface State {
   error: Error | null;
   resetKey: number;
+  componentStack: string | null;
 }
 
 export class ErrorBoundary extends Component<Props, State> {
-  state: State = { error: null, resetKey: 0 };
+  state: State = { error: null, resetKey: 0, componentStack: null };
 
   static getDerivedStateFromError(error: Error): Partial<State> {
     return { error };
   }
 
   componentDidCatch(error: Error, info: ErrorInfo) {
+    this.setState({ error, componentStack: info.componentStack ?? null });
+
     if (this.props.onError) {
       this.props.onError(error, info);
       return;
@@ -37,15 +49,20 @@ export class ErrorBoundary extends Component<Props, State> {
     }
   }
 
-  reset = () =>
+  reset = () => {
+    // Runs before the state clears so a re-initialisation attempt is already
+    // done by the time children re-mount under the new resetKey.
+    this.props.onRetry?.();
     this.setState((state) => ({
       error: null,
       resetKey: state.resetKey + 1,
+      componentStack: null,
     }));
+  };
 
   render() {
-    const { error, resetKey } = this.state;
-    const { children, fallback, isolate } = this.props;
+    const { error, resetKey, componentStack } = this.state;
+    const { children, fallback, isolate, supportUrl } = this.props;
 
     if (!error) return <div key={resetKey}>{children}</div>;
 
@@ -101,6 +118,26 @@ export class ErrorBoundary extends Component<Props, State> {
                 : "Details are hidden in production."}
             </p>
           </div>
+          {supportUrl && (
+            <a
+              href={supportUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[12px] text-brand hover:underline"
+            >
+              Report this issue
+            </a>
+          )}
+          {import.meta.env.DEV && componentStack && (
+            <details className="w-full rounded-xl border border-line bg-surface-2 px-4 py-3 text-left">
+              <summary className="cursor-pointer text-[11px] font-medium text-ink-3">
+                Show component stack
+              </summary>
+              <pre className="mt-2 whitespace-pre-wrap break-all text-[11px] text-ink-3">
+                {componentStack}
+              </pre>
+            </details>
+          )}
           <div className="flex items-center gap-3">
             <button
               onClick={this.reset}

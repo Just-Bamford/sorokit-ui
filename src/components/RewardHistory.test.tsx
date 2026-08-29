@@ -2,11 +2,12 @@ import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
 import {
-  MOCK_VALIDATORS,
-  REWARD_HISTORY_DAYS,
   aggregateDailyRewards,
   generateMockRewardHistory,
+  MOCK_VALIDATORS,
+  REWARD_HISTORY_DAYS,
 } from "@/lib/staking";
+
 import { RewardHistory } from "./RewardHistory";
 
 const ALL_EVENTS = generateMockRewardHistory();

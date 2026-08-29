@@ -7,7 +7,7 @@ vi.mock("@/lib/client", () => ({
   getClient: vi.fn(),
 }));
 
-import type { GasEstimate, GasPriceData, FeeScenario, SorokitClient } from "@/lib/client";
+import type { GasEstimate, GasPriceData, SorokitClient } from "@/lib/client";
 import { getClient } from "@/lib/client";
 
 const MOCK_GAS_PRICE_DATA: GasPriceData = {

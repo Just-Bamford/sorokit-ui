@@ -5,20 +5,20 @@
 
 import {
   Clock01Icon,
-  Gift01Icon,
+  GiftIcon,
   TimeQuarterIcon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
-import { cn } from "@/lib/utils";
 import type { Delegation, RewardScheduleEntry, Validator } from "@/lib/staking";
 import {
   formatXlm,
   totalClaimableXlm,
   totalPendingXlm,
 } from "@/lib/staking";
+import { cn } from "@/lib/utils";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -106,7 +106,7 @@ export function RewardsPanel({
           valueClassName="text-green"
           icon={
             <HugeiconsIcon
-              icon={Gift01Icon}
+              icon={GiftIcon}
               size={13}
               color="currentColor"
               strokeWidth={1.5}

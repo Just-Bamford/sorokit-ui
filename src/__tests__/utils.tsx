@@ -8,18 +8,19 @@ import { createMockClient } from "@/lib/mock-client";
 export interface RenderWithProviderOptions
   extends Omit<RenderOptions, "wrapper"> {
   client?: SorokitClient;
+  onError?: (error: string, source: string) => void;
 }
 
 export function renderWithProvider(
   ui: ReactElement,
   contextOverrides: RenderWithProviderOptions = {},
 ) {
-  const { client = createMockClient(), ...renderOptions } = contextOverrides;
+  const { client = createMockClient(), onError, ...renderOptions } = contextOverrides;
 
   return {
     client,
     ...render(
-      React.createElement(SorokitProvider, { client }, ui),
+      React.createElement(SorokitProvider, { client, onError }, ui),
       renderOptions,
     ),
   };

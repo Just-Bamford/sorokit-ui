@@ -1,7 +1,7 @@
 import type { Balance } from "@/lib/client";
 import { cn, truncateAddress } from "@/lib/utils";
 
-const ASSET_COLORS: Record<string, { bg: string; text: string }> = {
+export const ASSET_COLORS: Record<string, { bg: string; text: string }> = {
   XLM: { bg: "bg-[rgba(20,184,166,0.12)]", text: "text-teal" },
   yXLM: { bg: "bg-[rgba(34,197,94,0.12)]", text: "text-green" },
   USDC: { bg: "bg-[rgba(86,69,212,0.12)]", text: "text-brand" },
@@ -34,25 +34,65 @@ function hashCode(str: string): number {
   return Math.abs(hash);
 }
 
-function getAssetColor(code: string) {
-  if (ASSET_COLORS[code]) {
-    return ASSET_COLORS[code];
+export function getAssetColor(
+  code: string,
+  colorMap?: Record<string, { bg: string; text: string }>,
+) {
+  if (colorMap) {
+    if (colorMap[code]) return colorMap[code];
+    const lower = code.toLowerCase();
+    const matchedKey = Object.keys(colorMap).find(
+      (k) => k.toLowerCase() === lower,
+    );
+    if (matchedKey && colorMap[matchedKey]) return colorMap[matchedKey];
   }
+  if (ASSET_COLORS[code]) return ASSET_COLORS[code];
+  const upper = code.toUpperCase();
+  if (ASSET_COLORS[upper]) return ASSET_COLORS[upper];
   const hash = hashCode(code);
   return FALLBACK_COLOR_PALETTE[hash % FALLBACK_COLOR_PALETTE.length];
 }
 
-interface AssetBadgeProps {
+/**
+ * Assets whose issuer is well known enough that printing the issuer address
+ * next to the code is noise rather than information.
+ */
+const KNOWN_ASSETS = new Set(["XLM", "yXLM", "USDC", "USDT", "BTC", "ETH", "AQUA", "SHX", "BLND"]);
+
+/** Whether `code` is in the built-in known-asset registry. */
+export function isKnownAsset(code: string): boolean {
+  return KNOWN_ASSETS.has(code.toUpperCase());
+}
+
+export interface AssetBadgeProps {
   balance: Balance;
   showIssuer?: boolean;
+  /**
+   * Show the issuer only for assets outside the known-asset registry
+   * (XLM, USDC, USDT, BTC, ETH). Takes precedence over `showIssuer`.
+   */
+  showIssuerForUnknown?: boolean;
+  /**
+   * Appends a short issuer suffix (first 4 + last 4 chars, e.g. "GA5Z...KZVN")
+   * to the asset code label to distinguish multi-issuer tokens sharing the same code.
+   */
+  showIssuerSuffix?: boolean;
   size?: "sm" | "md" | "lg";
+  /** Makes the badge an interactive button — e.g. for asset selection. */
+  onClick?: () => void;
+  /** Custom color map merged with default ASSET_COLORS */
+  colorMap?: Record<string, { bg: string; text: string }>;
   className?: string;
 }
 
 export function AssetBadge({
   balance,
   showIssuer = true,
+  showIssuerForUnknown,
+  showIssuerSuffix = false,
   size = "md",
+  onClick,
+  colorMap,
   className,
 }: AssetBadgeProps) {
   const isLpShares = balance.assetType === "liquidity_pool_shares";
@@ -62,8 +102,8 @@ export function AssetBadge({
       ? "XLM"
       : (balance.assetCode ?? balance.asset);
   const { bg, text } = isLpShares
-    ? { bg: "bg-surface-2", text: "text-ink-2" }
-    : getAssetColor(code);
+    ? (colorMap?.[code] ?? colorMap?.LP ?? { bg: "bg-surface-2", text: "text-ink-2" })
+    : getAssetColor(code, colorMap);
 
   const iconSize =
     size === "sm"
@@ -79,23 +119,48 @@ export function AssetBadge({
         : "text-[13px]";
   const subSize = size === "sm" ? "text-[10px]" : "text-[11px]";
 
-  return (
-    <div className={cn("flex items-center gap-2.5", className)}>
+  // Show full code for 1-3 char codes (e.g. XLM, ETH, BTC), 4 chars at lg for longer codes, and 2 chars otherwise.
+  const iconLabel =
+    code.length <= 3
+      ? code
+      : size === "lg"
+        ? code.slice(0, 4)
+        : code.slice(0, 2);
+
+  // showIssuerForUnknown narrows showIssuer: known assets never show it.
+  const issuerVisible = showIssuerForUnknown
+    ? !isKnownAsset(code)
+    : showIssuer;
+
+  const issuerSuffix =
+    showIssuerSuffix && balance.assetIssuer
+      ? truncateAddress(balance.assetIssuer, 4, 4)
+      : null;
+
+  const content = (
+    <>
       <div
         className={cn(
           "rounded-full flex items-center justify-center font-bold shrink-0",
           iconSize,
+          // Four characters need to shrink to stay inside the circle.
+          size === "lg" && iconLabel.length > 2 && "text-[11px] tracking-tight",
           bg,
           text,
         )}
       >
-        {code.slice(0, 2)}
+        {iconLabel}
       </div>
       <div className="flex flex-col gap-0.5 min-w-0">
         <span className={cn("font-medium text-ink leading-none", labelSize)}>
           {code}
+          {issuerSuffix && (
+            <span className="text-ink-3 font-normal ml-1 text-[11px]">
+              ({issuerSuffix})
+            </span>
+          )}
         </span>
-        {showIssuer &&
+        {issuerVisible &&
           (balance.assetType === "native" ? (
             <span className={cn("text-ink-3", subSize)}>Stellar Lumens</span>
           ) : isLpShares ? (
@@ -108,19 +173,44 @@ export function AssetBadge({
             </span>
           ) : null)}
       </div>
-    </div>
+    </>
   );
+
+  if (onClick) {
+    return (
+      <button
+        type="button"
+        onClick={onClick}
+        aria-label={`Select ${code}`}
+        className={cn(
+          "flex items-center gap-2.5 text-left rounded-lg -mx-1.5 px-1.5 py-1 cursor-pointer transition-colors",
+          "hover:bg-surface-2 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-brand",
+          className,
+        )}
+      >
+        {content}
+      </button>
+    );
+  }
+
+  return (
+    <div className={cn("flex items-center gap-2.5", className)}>{content}</div>
+  );
+}
+
+export interface AssetPillProps {
+  assetCode: string;
+  colorMap?: Record<string, { bg: string; text: string }>;
+  className?: string;
 }
 
 /** Inline pill version — just the code with colored dot */
 export function AssetPill({
   assetCode,
+  colorMap,
   className,
-}: {
-  assetCode: string;
-  className?: string;
-}) {
-  const { bg, text } = getAssetColor(assetCode);
+}: AssetPillProps) {
+  const { bg, text } = getAssetColor(assetCode, colorMap);
   return (
     <span
       className={cn(

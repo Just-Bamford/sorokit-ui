@@ -1,16 +1,16 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
 
-import { useSorokit } from '@/context/useSorokit';
+import { useSorokit } from "@/context/useSorokit";
 
-import { AccountCard } from './AccountCard';
-import { WalletConnectButton } from './WalletConnectButton';
+import { AccountCard } from "./AccountCard";
+import { WalletConnectButton } from "./WalletConnectButton";
 
-vi.mock('@/context/useSorokit', () => ({
+vi.mock("@/context/useSorokit", () => ({
   useSorokit: vi.fn(),
 }));
 
-describe('Wallet flow integration', () => {
+describe("Wallet flow integration", () => {
   const mockConnect = vi.fn();
   const mockClearError = vi.fn();
   const mockOnOpenModal = vi.fn();
@@ -19,8 +19,10 @@ describe('Wallet flow integration', () => {
     vi.clearAllMocks();
   });
 
-  it('connects, shows account, then opens modal on wallet click', async () => {
-    (useSorokit as any).mockReturnValue({
+  it("connects, shows account, then opens modal on wallet click", async () => {
+    (
+      useSorokit as unknown as { mockReturnValue: (value: unknown) => void }
+    ).mockReturnValue({
       isConnected: false,
       isConnecting: false,
       address: null,
@@ -34,22 +36,24 @@ describe('Wallet flow integration', () => {
       <>
         <WalletConnectButton onOpenModal={mockOnOpenModal} />
         <AccountCard />
-      </>
+      </>,
     );
 
-    expect(screen.getByText('Connect Wallet')).toBeInTheDocument();
+    expect(screen.getByText("Connect Wallet")).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Connect Wallet' }));
+    fireEvent.click(screen.getByRole("button", { name: "Connect Wallet" }));
     await waitFor(() =>
-      screen.getByRole('dialog', { name: /connect a wallet/i }),
+      screen.getByRole("dialog", { name: /connect a wallet/i }),
     );
-    fireEvent.click(screen.getByRole('button', { name: 'Freighter' }));
+    fireEvent.click(screen.getByRole("button", { name: "Freighter" }));
     expect(mockConnect).toHaveBeenCalledTimes(1);
 
-    (useSorokit as any).mockReturnValue({
+    (
+      useSorokit as unknown as { mockReturnValue: (value: unknown) => void }
+    ).mockReturnValue({
       isConnected: true,
       isConnecting: false,
-      address: 'GABC1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ',
+      address: "GABC1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ",
       connectWallet: mockConnect,
       disconnectWallet: vi.fn(),
       error: null,
@@ -60,13 +64,13 @@ describe('Wallet flow integration', () => {
       <>
         <WalletConnectButton onOpenModal={mockOnOpenModal} />
         <AccountCard />
-      </>
+      </>,
     );
 
-    expect(screen.getByText('Account')).toBeInTheDocument();
-    expect(screen.getByText('GABC12...WXYZ')).toBeInTheDocument();
+    expect(screen.getByText("Account")).toBeInTheDocument();
+    expect(screen.getByText("GABC12...WXYZ")).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: /Wallet connected/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Wallet connected/ }));
     expect(mockOnOpenModal).toHaveBeenCalledTimes(1);
   });
 });

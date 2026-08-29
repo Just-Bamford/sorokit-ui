@@ -1,167 +1,178 @@
-import { fireEvent,render, screen } from "@testing-library/react";
-import { beforeEach,describe, expect, it, vi } from "vitest";
+import { Download01Icon,Refresh01Icon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { useEffect, useState } from "react";
 
+import { AccountCard } from "@/components/AccountCard";
+import { BalanceList } from "@/components/BalanceList";
+import { ClaimableBalanceCard } from "@/components/ClaimableBalanceCard";
+import { Button } from "@/components/ui/Button";
 import { useSorokit } from "@/context/useSorokit";
+import type { NetworkInfo } from "@/lib/client";
 
-import { ConnectScreen } from "./ConnectScreen";
+function handleExport(
+  address: string,
+  account: ReturnType<typeof useSorokit>["account"],
+  balances: ReturnType<typeof useSorokit>["balances"],
+) {
+  const data = {
+    address,
+    account,
+    balances,
+    exportedAt: new Date().toISOString(),
+  };
 
-vi.mock("@/context/useSorokit", () => ({
-  useSorokit: vi.fn(),
-}));
-
-const BASE_CONTEXT = {
-  connectWallet: vi.fn(),
-  isConnecting: false,
-  error: null,
-  clearError: vi.fn(),
-};
-
-describe("ConnectScreen", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    vi.mocked(useSorokit).mockReturnValue(
-      BASE_CONTEXT as unknown as ReturnType<typeof useSorokit>,
-    );
+  const blob = new Blob([JSON.stringify(data, null, 2)], {
+    type: "application/json",
   });
 
-  it("renders the connect wallet button in idle state", () => {
-    render(<ConnectScreen />);
-    expect(
-      screen.getByRole("button", { name: /connect wallet/i }),
-    ).toBeInTheDocument();
-  });
+  const url = URL.createObjectURL(blob);
 
-  it("shows 'Connecting…' button label and status text while connecting", () => {
-    vi.mocked(useSorokit).mockReturnValue({
-      ...BASE_CONTEXT,
-      isConnecting: true,
-    } as unknown as ReturnType<typeof useSorokit>);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `sorokit-account-${address.slice(0, 8)}.json`;
+  a.click();
 
-    render(<ConnectScreen />);
+  URL.revokeObjectURL(url);
+}
 
-    expect(screen.getByText("Connecting…")).toBeInTheDocument();
-    expect(
-      screen.getByText("Connecting to your wallet…"),
-    ).toBeInTheDocument();
-  });
+/**
+ * Maps a Stellar network to its Stellar Expert account-explorer URL.
+ * Returns null for unsupported networks.
+ */
+function explorerAccountUrl(
+  network: NetworkInfo | null,
+  address: string | null,
+): string | null {
+  if (!network || !address) return null;
 
-  it("does not show connecting status text when not connecting", () => {
-    render(<ConnectScreen />);
-    expect(
-      screen.queryByText("Connecting to your wallet…"),
-    ).not.toBeInTheDocument();
-  });
+  const segment =
+    network.name === "mainnet"
+      ? "public"
+      : network.name === "testnet"
+        ? "testnet"
+        : null;
 
-  it("renders an error banner when an error is present", () => {
-    vi.mocked(useSorokit).mockReturnValue({
-      ...BASE_CONTEXT,
-      error: "Wallet not found",
-    } as unknown as ReturnType<typeof useSorokit>);
+  if (!segment) return null;
 
-    render(<ConnectScreen />);
+  return `https://stellar.expert/explorer/${segment}/account/${address}`;
+}
 
-    expect(screen.getByText("Wallet not found")).toBeInTheDocument();
-  });
+export function AccountScreen() {
+  const {
+    isConnected,
+    isLoadingAccount,
+    refreshAccount,
+    address,
+    account,
+    balances,
+    network,
+  } = useSorokit();
 
-  it("does not render an error banner when there is no error", () => {
-    render(<ConnectScreen />);
-    expect(screen.queryByText("Wallet not found")).not.toBeInTheDocument();
-  });
+  const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null);
+  const [now, setNow] = useState(new Date());
 
-  it("calls clearError when the dismiss button is clicked", () => {
-    const clearError = vi.fn();
-    vi.mocked(useSorokit).mockReturnValue({
-      ...BASE_CONTEXT,
-      error: "Something went wrong",
-      clearError,
-    } as unknown as ReturnType<typeof useSorokit>);
+  useEffect(() => {
+    if (!lastRefreshed) return;
 
-    render(<ConnectScreen />);
+    const interval = setInterval(() => {
+      setNow(new Date());
+    }, 60_000);
 
-    expect(screen.getByText("Something went wrong")).toBeInTheDocument();
+    return () => clearInterval(interval);
+  }, [lastRefreshed]);
 
-    const dismissButtons = screen.getAllByRole("button");
-    const dismissBtn = dismissButtons.find(
-      (btn) => !btn.textContent?.match(/connect/i),
-    );
-    expect(dismissBtn).toBeDefined();
-    fireEvent.click(dismissBtn!);
+  const handleRefresh = async () => {
+    await refreshAccount();
+    const timestamp = new Date();
+    setLastRefreshed(timestamp);
+    setNow(timestamp);
+  };
 
-    expect(clearError).toHaveBeenCalledTimes(1);
-  });
-
-  it("calls connectWallet when the connect button is clicked", () => {
-    const connectWallet = vi.fn();
-    vi.mocked(useSorokit).mockReturnValue({
-      ...BASE_CONTEXT,
-      connectWallet,
-    } as unknown as ReturnType<typeof useSorokit>);
-
-    render(<ConnectScreen />);
-
-    fireEvent.click(screen.getByRole("button", { name: /connect wallet/i }));
-
-    expect(connectWallet).toHaveBeenCalledTimes(1);
-  });
-
-  // ── Wallet option logos (#198) ──────────────────────────────────────────
-  it("renders a logo/button for each supported wallet", () => {
-    render(<ConnectScreen />);
-
-    for (const wallet of ["Freighter", "xBull", "Lobstr", "Albedo"]) {
-      expect(
-        screen.getByRole("button", { name: `Connect with ${wallet}` }),
-      ).toBeInTheDocument();
-    }
-  });
-
-  it("calls connectWallet when a wallet option is clicked", () => {
-    const connectWallet = vi.fn();
-    vi.mocked(useSorokit).mockReturnValue({
-      ...BASE_CONTEXT,
-      connectWallet,
-    } as unknown as ReturnType<typeof useSorokit>);
-
-    render(<ConnectScreen />);
-    fireEvent.click(
-      screen.getByRole("button", { name: "Connect with Freighter" }),
+  const getRelativeTime = (date: Date) => {
+    const diffInSeconds = Math.floor(
+      (now.getTime() - date.getTime()) / 1000,
     );
 
-    expect(connectWallet).toHaveBeenCalledTimes(1);
-  });
+    if (diffInSeconds < 60) return "just now";
 
-  it("disables wallet option buttons while connecting", () => {
-    vi.mocked(useSorokit).mockReturnValue({
-      ...BASE_CONTEXT,
-      isConnecting: true,
-    } as unknown as ReturnType<typeof useSorokit>);
+    const minutes = Math.floor(diffInSeconds / 60);
 
-    render(<ConnectScreen />);
-    expect(
-      screen.getByRole("button", { name: "Connect with Freighter" }),
-    ).toBeDisabled();
-  });
+    if (minutes === 1) return "1 min ago";
 
-  // ── "New to Stellar?" collapsible section (#198) ────────────────────────
-  it("renders a collapsible 'New to Stellar?' section that is closed by default", () => {
-    render(<ConnectScreen />);
+    return `${minutes} min ago`;
+  };
 
-    const summary = screen.getByText("New to Stellar?");
-    expect(summary).toBeInTheDocument();
-    const details = summary.closest("details");
-    expect(details).not.toHaveAttribute("open");
-    expect(
-      screen.getByText(/never leaves your device/i),
-    ).toBeInTheDocument();
-  });
+  const explorerUrl = explorerAccountUrl(network, address);
 
-  it("opens the 'New to Stellar?' section when clicked", () => {
-    render(<ConnectScreen />);
+  return (
+    <div className="flex flex-col gap-5">
+      <h2 className="text-[18px] font-semibold text-ink">Account</h2>
 
-    const summary = screen.getByText("New to Stellar?");
-    fireEvent.click(summary);
+      <p className="text-[13px] text-ink-3 -mt-3">
+        Balances and account details
+      </p>
 
-    const details = summary.closest("details");
-    expect(details).toHaveAttribute("open");
-  });
-});
+      {isConnected && (
+        <div className="flex flex-col items-end gap-1">
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              variant="ghost"
+              loading={isLoadingAccount}
+              onClick={handleRefresh}
+              aria-label="Refresh account data"
+            >
+              <HugeiconsIcon
+                icon={Refresh01Icon}
+                size={14}
+                strokeWidth={1.5}
+              />
+              Refresh
+            </Button>
+
+            {address && (
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => handleExport(address, account, balances)}
+                aria-label="Export account data"
+                data-testid="account-export-button"
+              >
+                <HugeiconsIcon
+                  icon={Download01Icon}
+                  size={14}
+                  strokeWidth={1.5}
+                />
+                Export
+              </Button>
+            )}
+
+            {explorerUrl && (
+              <a
+                data-testid="account-explorer-link"
+                href={explorerUrl}
+                target="_blank"
+                rel="noreferrer"
+                aria-label={`View ${address} on Stellar Expert`}
+                className="inline-flex items-center gap-1 h-8 px-3 rounded-lg text-[12px] font-medium text-ink-2 hover:text-ink hover:bg-surface-2 transition-colors"
+              >
+                Explorer
+                <span aria-hidden="true">↗</span>
+              </a>
+            )}
+          </div>
+
+          {lastRefreshed && (
+            <span className="text-[11px] text-ink-3 pr-1">
+              Last updated: {getRelativeTime(lastRefreshed)}
+            </span>
+          )}
+        </div>
+      )}
+
+      <AccountCard />
+      <BalanceList />
+      <ClaimableBalanceCard />
+    </div>
+  );
+}
