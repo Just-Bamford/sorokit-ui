@@ -62,7 +62,9 @@ describe("cn utility", () => {
   });
 
   it("handles false, 0, and empty strings without throwing", () => {
-    expect(cn(false, "p-4", "", 0)).toBe("p-4");
+    const isHidden = false;
+    const count = 0;
+    expect(cn(isHidden && "hidden", "p-4", "", count && "text-lg")).toBe("p-4");
   });
 
   it("handles arrays and conditional class objects", () => {

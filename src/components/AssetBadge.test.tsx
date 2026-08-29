@@ -252,6 +252,23 @@ describe("AssetBadge", () => {
       expect(container.querySelector(".rounded-full")?.textContent).toBe("XLM");
     });
   });
+
+  describe("showIssuerSuffix", () => {
+    it("appends short issuer suffix (first 4 + last 4) when showIssuerSuffix is true", () => {
+      render(<AssetBadge balance={usdcBalance} showIssuerSuffix />);
+      expect(screen.getByText("(GA5Z...KZVN)")).toBeInTheDocument();
+    });
+
+    it("does not render suffix when showIssuerSuffix is false", () => {
+      render(<AssetBadge balance={usdcBalance} showIssuerSuffix={false} />);
+      expect(screen.queryByText("(GA5Z...KZVN)")).not.toBeInTheDocument();
+    });
+
+    it("does not render suffix for native asset even if showIssuerSuffix is true", () => {
+      render(<AssetBadge balance={nativeBalance} showIssuerSuffix />);
+      expect(screen.queryByText(/\(.*\)/)).not.toBeInTheDocument();
+    });
+  });
 });
 
 describe("ASSET_COLORS & getAssetColor", () => {

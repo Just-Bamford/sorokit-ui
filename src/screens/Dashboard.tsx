@@ -1,4 +1,4 @@
-import { type ComponentType, lazy, Suspense, useCallback, useState } from "react";
+import { type ComponentType, lazy, Suspense, useCallback, useEffect, useState } from "react";
 
 import { NetworkBanner } from "@/components/NetworkBanner";
 import { type NavSection, Sidebar } from "@/components/Sidebar";
@@ -36,6 +36,19 @@ const YieldFarmingScreen = lazy(() =>
     default: m.YieldFarmingScreen,
   })),
 );
+
+const PAGE_TITLES: Record<NavSection, string> = {
+  wallet: "Wallet — Sorokit",
+  account: "Account — Sorokit",
+  transactions: "Transactions — Sorokit",
+  soroban: "Soroban — Sorokit",
+  network: "Network — Sorokit",
+  recovery: "Recovery — Sorokit",
+  charts: "Charts — Sorokit",
+  farming: "Yield Farming — Sorokit",
+  budget: "Budget — Sorokit",
+  nfts: "NFTs — Sorokit",
+};
 
 const SCREENS: Record<NavSection, ComponentType> = {
   wallet: WalletScreen,
@@ -77,6 +90,10 @@ export function Dashboard({
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const active = isControlled ? activeSection : internalActive;
+
+  useEffect(() => {
+    document.title = PAGE_TITLES[active];
+  }, [active]);
 
   // Screens keep their mounted state once actually shown (e.g. a half-typed
   // Soroban form) instead of being torn down every time navigation moves

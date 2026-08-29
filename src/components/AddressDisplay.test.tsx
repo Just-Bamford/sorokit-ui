@@ -23,20 +23,20 @@ describe("AddressDisplay", () => {
     it("renders truncated address and copy button with correct aria-label", async () => {
       render(<AddressDisplay address={address} />);
       expect(screen.getByText("GBAMQXTQ...ZJQQQQ")).toBeInTheDocument();
-      const copyBtn = screen.getByRole("button", { name: "Copy address" });
+      const copyBtn = screen.getByRole("button", { name: "Copy address to clipboard" });
       expect(copyBtn).toBeInTheDocument();
       expect(copyBtn).not.toHaveAttribute("tabindex", "-1");
       await act(async () => { fireEvent.click(copyBtn); });
       expect(mockWriteText).toHaveBeenCalledWith(address);
       expect(screen.getByRole("button", { name: "Address copied" })).toBeInTheDocument();
       await waitFor(() => {
-        expect(screen.getByRole("button", { name: "Copy address" })).toBeInTheDocument();
+        expect(screen.getByRole("button", { name: "Copy address to clipboard" })).toBeInTheDocument();
       }, { timeout: 2500 });
     });
 
     it("applies base opacity-50 to copy button", () => {
       render(<AddressDisplay address={address} />);
-      const copyBtn = screen.getByRole("button", { name: "Copy address" });
+      const copyBtn = screen.getByRole("button", { name: "Copy address to clipboard" });
       expect(copyBtn.className).toContain("opacity-50");
       expect(copyBtn.className).not.toContain("opacity-0");
     });
@@ -61,7 +61,7 @@ describe("AddressDisplay", () => {
     it("fires after successful clipboard write", async () => {
       const onCopy = vi.fn();
       render(<AddressDisplay address={address} onCopy={onCopy} />);
-      await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Copy address" })); });
+      await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Copy address to clipboard" })); });
       expect(onCopy).toHaveBeenCalled();
     });
   });
@@ -183,5 +183,91 @@ describe("AddressDisplay", () => {
     expect(container.querySelector("dl")).toBeNull();
     expect(container.querySelector("dt")).toBeNull();
     expect(container.querySelector("dd")).toBeNull();
+  });
+
+  describe("non-secure context fallback (#534)", () => {
+    it("falls back to execCommand when navigator.clipboard is undefined", async () => {
+      Object.defineProperty(navigator, "clipboard", {
+        value: undefined,
+        configurable: true,
+        writable: true,
+      });
+      const execCommand = vi.fn().mockReturnValue(true);
+      document.execCommand = execCommand;
+
+      const onCopy = vi.fn();
+      render(<AddressDisplay address={address} onCopy={onCopy} />);
+      await act(async () => {
+        fireEvent.click(screen.getByRole("button", { name: "Copy address to clipboard" }));
+      });
+
+      expect(execCommand).toHaveBeenCalledWith("copy");
+      expect(onCopy).toHaveBeenCalled();
+      expect(screen.getByRole("button", { name: "Address copied" })).toBeInTheDocument();
+
+      Object.defineProperty(navigator, "clipboard", {
+        value: { writeText: mockWriteText },
+        configurable: true,
+        writable: true,
+      });
+    });
+
+    it("falls back to execCommand when navigator.clipboard.writeText rejects", async () => {
+      mockWriteText.mockRejectedValueOnce(new Error("not a secure context"));
+      const execCommand = vi.fn().mockReturnValue(true);
+      document.execCommand = execCommand;
+
+      render(<AddressDisplay address={address} />);
+      await act(async () => {
+        fireEvent.click(screen.getByRole("button", { name: "Copy address to clipboard" }));
+      });
+
+      expect(execCommand).toHaveBeenCalledWith("copy");
+      expect(screen.getByRole("button", { name: "Address copied" })).toBeInTheDocument();
+    });
+
+    it("shows a visible failure indicator for at least 1.5s when both copy methods fail", async () => {
+      vi.useFakeTimers();
+      mockWriteText.mockRejectedValueOnce(new Error("denied"));
+      document.execCommand = vi.fn().mockReturnValue(false);
+
+      render(<AddressDisplay address={address} />);
+      await act(async () => {
+        fireEvent.click(screen.getByRole("button", { name: "Copy address to clipboard" }));
+      });
+
+      expect(
+        screen.getByRole("button", { name: "Failed to copy address" }),
+      ).toBeInTheDocument();
+
+      act(() => {
+        vi.advanceTimersByTime(1400);
+      });
+      expect(
+        screen.getByRole("button", { name: "Failed to copy address" }),
+      ).toBeInTheDocument();
+
+      act(() => {
+        vi.advanceTimersByTime(200);
+      });
+      expect(
+        screen.getByRole("button", { name: "Copy address to clipboard" }),
+      ).toBeInTheDocument();
+
+      vi.useRealTimers();
+    });
+
+    it("does not call onCopy when both copy methods fail", async () => {
+      mockWriteText.mockRejectedValueOnce(new Error("denied"));
+      document.execCommand = vi.fn().mockReturnValue(false);
+      const onCopy = vi.fn();
+
+      render(<AddressDisplay address={address} onCopy={onCopy} />);
+      await act(async () => {
+        fireEvent.click(screen.getByRole("button", { name: "Copy address to clipboard" }));
+      });
+
+      expect(onCopy).not.toHaveBeenCalled();
+    });
   });
 });

@@ -46,6 +46,11 @@ export interface AssetBadgeProps {
    * (XLM, USDC, USDT, BTC, ETH). Takes precedence over `showIssuer`.
    */
   showIssuerForUnknown?: boolean;
+  /**
+   * Appends a short issuer suffix (first 4 + last 4 chars, e.g. "GA5Z...KZVN")
+   * to the asset code label to distinguish multi-issuer tokens sharing the same code.
+   */
+  showIssuerSuffix?: boolean;
   size?: "sm" | "md" | "lg";
   /** Makes the badge an interactive button — e.g. for asset selection. */
   onClick?: () => void;
@@ -58,6 +63,7 @@ export function AssetBadge({
   balance,
   showIssuer = true,
   showIssuerForUnknown,
+  showIssuerSuffix = false,
   size = "md",
   onClick,
   colorMap,
@@ -100,6 +106,11 @@ export function AssetBadge({
     ? !isKnownAsset(code)
     : showIssuer;
 
+  const issuerSuffix =
+    showIssuerSuffix && balance.assetIssuer
+      ? truncateAddress(balance.assetIssuer, 4, 4)
+      : null;
+
   const content = (
     <>
       <div
@@ -117,6 +128,11 @@ export function AssetBadge({
       <div className="flex flex-col gap-0.5 min-w-0">
         <span className={cn("font-medium text-ink leading-none", labelSize)}>
           {code}
+          {issuerSuffix && (
+            <span className="text-ink-3 font-normal ml-1 text-[11px]">
+              ({issuerSuffix})
+            </span>
+          )}
         </span>
         {issuerVisible &&
           (balance.assetType === "native" ? (

@@ -1,6 +1,6 @@
-import { Copy01Icon, Tick01Icon } from "@hugeicons/core-free-icons";
+import { Cancel01Icon, Copy01Icon, Tick01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 import { Tooltip } from "@/components/ui/Tooltip";
 import { cn } from "@/lib/utils";
@@ -25,6 +25,34 @@ const sizeConfig = {
   lg: { text: "text-[13px]", icon: 14 },
 } as const;
 
+const COPIED_RESET_MS = 2000;
+const FAILED_RESET_MS = 1500;
+
+/**
+ * `document.execCommand("copy")` fallback for non-secure contexts (plain
+ * HTTP), where `navigator.clipboard` is undefined. Deprecated but still the
+ * only synchronous copy mechanism outside a secure context.
+ */
+function copyViaExecCommand(text: string): boolean {
+  const textarea = document.createElement("textarea");
+  textarea.value = text;
+  textarea.style.position = "fixed";
+  textarea.style.opacity = "0";
+  textarea.style.pointerEvents = "none";
+  document.body.appendChild(textarea);
+  textarea.select();
+  textarea.setSelectionRange(0, text.length);
+  let succeeded: boolean;
+  try {
+    succeeded = document.execCommand("copy");
+  } catch {
+    succeeded = false;
+  } finally {
+    document.body.removeChild(textarea);
+  }
+  return succeeded;
+}
+
 export function AddressDisplay({
   address,
   start = 8,
@@ -38,15 +66,40 @@ export function AddressDisplay({
   mono = false,
 }: AddressDisplayProps) {
   const [copied, setCopied] = useState(false);
+  const [copyFailed, setCopyFailed] = useState(false);
+  const resetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  function clearResetTimer() {
+    if (resetTimerRef.current !== null) {
+      clearTimeout(resetTimerRef.current);
+      resetTimerRef.current = null;
+    }
+  }
 
   async function copy() {
-    try {
-      await navigator.clipboard.writeText(address);
+    clearResetTimer();
+    let succeeded = false;
+    if (navigator.clipboard) {
+      try {
+        await navigator.clipboard.writeText(address);
+        succeeded = true;
+      } catch {
+        succeeded = false;
+      }
+    }
+    if (!succeeded) {
+      succeeded = copyViaExecCommand(address);
+    }
+
+    if (succeeded) {
+      setCopyFailed(false);
       setCopied(true);
       onCopy?.();
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      /* fallback */
+      resetTimerRef.current = setTimeout(() => setCopied(false), COPIED_RESET_MS);
+    } else {
+      setCopied(false);
+      setCopyFailed(true);
+      resetTimerRef.current = setTimeout(() => setCopyFailed(false), FAILED_RESET_MS);
     }
   }
 
@@ -72,19 +125,29 @@ export function AddressDisplay({
           {display}
         </span>
       </Tooltip>
-      <Tooltip content={copied ? "Copied!" : "Copy address"}>
+      <Tooltip
+        content={copyFailed ? "Copy failed" : copied ? "Copied!" : "Copy address to clipboard"}
+      >
         <button
           onClick={copy}
-          aria-label={copied ? "Address copied" : "Copy address"}
+          aria-label={
+            copyFailed
+              ? "Failed to copy address"
+              : copied
+                ? "Address copied"
+                : "Copy address to clipboard"
+          }
           className={cn(
             "shrink-0 p-1 rounded-md transition-all",
-            copied
-              ? "text-green bg-success-dim"
-              : "text-ink-3 hover:text-ink-2 hover:bg-surface-2 opacity-50 hover:opacity-100",
+            copyFailed
+              ? "text-red bg-error-dim"
+              : copied
+                ? "text-green bg-success-dim"
+                : "text-ink-3 hover:text-ink-2 hover:bg-surface-2 opacity-50 hover:opacity-100",
           )}
         >
           <HugeiconsIcon
-            icon={copied ? Tick01Icon : Copy01Icon}
+            icon={copyFailed ? Cancel01Icon : copied ? Tick01Icon : Copy01Icon}
             size={iconSize}
             color="currentColor"
             strokeWidth={2}

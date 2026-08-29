@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -104,6 +104,7 @@ export function SorobanPanel({
   const [abiError, setAbiError] = useState<string | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
   const argsRef = useRef(args);
+  const formId = useId();
 
   useEffect(() => {
     argsRef.current = args;
@@ -212,12 +213,6 @@ export function SorobanPanel({
     doInvoke();
   }
 
-  function handleClick(e: React.MouseEvent<HTMLButtonElement>) {
-    e.preventDefault();
-    if (state === "loading") return;
-    doInvoke();
-  }
-
   function handleLoadAbi() {
     setAbiError(null);
     try {
@@ -276,7 +271,7 @@ export function SorobanPanel({
             Connect your wallet to {mode === "simulate" ? "simulate" : "invoke"} contracts
           </p>
         ) : (
-          <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+          <form id={formId} onSubmit={handleSubmit} className="flex flex-col gap-5">
             <Input
               label="Contract ID"
               placeholder="C..."
@@ -476,11 +471,12 @@ export function SorobanPanel({
           </Button>
         )}
         <Button
+          type="submit"
+          form={formId}
           size="md"
           loading={state === "loading"}
           // `canInvoke` already requires state !== "loading".
           disabled={!canInvoke}
-          onClick={handleClick}
         >
           {state === "loading"
             ? mode === "simulate"
