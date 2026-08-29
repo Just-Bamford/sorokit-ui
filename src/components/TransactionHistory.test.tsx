@@ -339,7 +339,6 @@ describe("TransactionHistory", () => {
     const OTHER_ADDRESS = "GBQMSN2ZQMXK5OBRXV5MTZ3PB4DTJVBQZTIEZTBAGMNIJ4XWVCPMFRPD";
 
     it("resets to page 1 and clears total/txs when the connected address changes", async () => {
-      sessionStorage.setItem(`sorokit-transaction-history-page:${ADDRESS}`, "3");
       const getHistory = vi.fn().mockResolvedValue({
         data: Array.from({ length: PAGE_SIZE }, (_, i) => makeTx(i)),
         error: null,
@@ -352,8 +351,17 @@ describe("TransactionHistory", () => {
       const { rerender } = render(<TransactionHistory />);
       act(() => { vi.advanceTimersByTime(0); });
       await waitFor(() =>
-        expect(getHistory).toHaveBeenCalledWith(ADDRESS, 3, PAGE_SIZE),
+        expect(getHistory).toHaveBeenCalledWith(ADDRESS, 1, PAGE_SIZE),
       );
+
+      // Navigate to page 3 via UI clicks.
+      fireEvent.click(screen.getByRole("button", { name: /next/i }));
+      act(() => { vi.advanceTimersByTime(0); });
+      await waitFor(() => expect(getHistory).toHaveBeenCalledWith(ADDRESS, 2, PAGE_SIZE));
+
+      fireEvent.click(screen.getByRole("button", { name: /next/i }));
+      act(() => { vi.advanceTimersByTime(0); });
+      await waitFor(() => expect(getHistory).toHaveBeenCalledWith(ADDRESS, 3, PAGE_SIZE));
       await waitFor(() => screen.getByText(/page 3 of 3/i));
 
       // Switch to a different wallet whose history only has one page.
@@ -772,7 +780,7 @@ describe("TransactionHistory", () => {
 
       // Change the address via the mocked hook
       const NEW_ADDRESS = "GNEWADDRESS12345678901234567890123456789012345678901234";
-      vi.mocked(useSorokit).mockReturnValue({ address: NEW_ADDRESS, isConnected: true, get client() { return getClient(); }, client: mockClient,
+      vi.mocked(useSorokit).mockReturnValue({ address: NEW_ADDRESS, isConnected: true, get client() { return getClient(); },
       } as unknown as ReturnType<typeof useSorokit>);
 
       rerender(<TransactionHistory />);
