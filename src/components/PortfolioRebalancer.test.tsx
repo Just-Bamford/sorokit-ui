@@ -177,8 +177,13 @@ describe("PortfolioRebalancer — allocations tab", () => {
 
   it("renders the diff table after assets load", async () => {
     render(<PortfolioRebalancer />);
+    // Wait for inputs to be ready, then change a target to produce a non-zero diff
+    await waitFor(() => screen.getByRole("spinbutton", { name: /target allocation for XLM/i }));
+    fireEvent.change(screen.getByRole("spinbutton", { name: /target allocation for XLM/i }), {
+      target: { value: "40" },
+    });
     await waitFor(() => {
-      // Table headers
+      // Table headers only appear when diffs are non-zero
       expect(screen.getByRole("columnheader", { name: /Asset/i })).toBeInTheDocument();
       expect(screen.getByRole("columnheader", { name: /current/i })).toBeInTheDocument();
       expect(screen.getByRole("columnheader", { name: /target/i })).toBeInTheDocument();
@@ -229,9 +234,14 @@ describe("PortfolioRebalancer — tab navigation", () => {
 
   it("Preview tab navigates back to Allocations via button", async () => {
     render(<PortfolioRebalancer />);
-    await waitFor(() => screen.getByRole("tab", { name: /preview/i }));
+    // Change allocations so swaps are generated, enabling the "Edit targets" button
+    await waitFor(() => screen.getByRole("spinbutton", { name: /target allocation for XLM/i }));
+    fireEvent.change(screen.getByRole("spinbutton", { name: /target allocation for XLM/i }), {
+      target: { value: "40" },
+    });
+    fireEvent.change(screen.getAllByRole("spinbutton")[1], { target: { value: "60" } });
     fireEvent.click(screen.getByRole("tab", { name: /preview/i }));
-    const editBtn = screen.getByRole("button", { name: /Edit/i });
+    const editBtn = await screen.findByRole("button", { name: /edit targets/i });
     fireEvent.click(editBtn);
     expect(screen.getByRole("tab", { name: /allocations/i }))
       .toHaveAttribute("aria-selected", "true");
@@ -299,7 +309,7 @@ describe("PortfolioRebalancer — preview tab", () => {
     render(<PortfolioRebalancer />);
     await waitFor(() => screen.getByRole("tab", { name: /preview/i }));
     fireEvent.click(screen.getByRole("tab", { name: /preview/i }));
-    expect(screen.getByText(/Review Swaps/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/Suggested Swaps/i)[0]).toBeInTheDocument();
   });
 
   it("renders Confirm & execute button when targets are valid and swaps exist", async () => {
