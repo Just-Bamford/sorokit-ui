@@ -259,7 +259,7 @@ export function createMockClient(
         error: null,
         status: "success" as const,
       }),
-      disconnect: async () => {},
+      disconnect: async () => { },
       getAddress: async () => ({ data: MOCK_ADDRESS, error: null }),
     },
     account: {
