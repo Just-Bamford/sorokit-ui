@@ -183,7 +183,8 @@ export function TransactionPanel({
 
   /** Builds a preview of the transaction and opens the confirmation modal. */
   async function buildPreview() {
-    if (!address) return;
+    const sourceAddress = address;
+    if (!sourceAddress) return;
     setIsBuildingPreview(true);
     try {
       const { data: feeData } = client ? await client.transaction.estimateFee() : { data: null };
@@ -201,7 +202,7 @@ export function TransactionPanel({
           baseFeeStroops: feeData?.baseFee ?? "100",
           totalStroops: feeData?.recommended ?? feeData?.baseFee ?? "100",
         },
-        sourceAccount: address,
+        sourceAccount: sourceAddress,
         sequenceNumber: account?.sequence,
       });
     } finally {
@@ -210,7 +211,7 @@ export function TransactionPanel({
   }
 
   /** Form submit handler — fires on Send button click and Enter key press. */
-  function handleFormSubmit(e: React.FormEvent) {
+  function handleFormSubmit(e: React.SyntheticEvent) {
     e.preventDefault();
     if (state === "loading" || !address || !canSubmit) return;
     if (previewMode) {
@@ -316,7 +317,16 @@ export function TransactionPanel({
             </div>
           </div>
         ) : (
-          <form id={formId} onSubmit={handleFormSubmit} className="flex flex-col gap-5">
+          <form
+            id={formId}
+            onSubmit={handleFormSubmit}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && e.target instanceof HTMLInputElement) {
+                handleFormSubmit(e);
+              }
+            }}
+            className="flex flex-col gap-5"
+          >
             <Input
               label="Destination Address"
               placeholder="G..."
