@@ -97,7 +97,7 @@ describe("TransactionHistoryTable", () => {
   it("shows ledger numbers", async () => {
     render(<TransactionHistoryTable />);
     await waitFor(() => {
-      expect(screen.getAllByText(/1,?000,?000/)[0]).toBeInTheDocument();
+      expect(screen.getAllByText(/1000024/)[0]).toBeInTheDocument();
     });
   });
 

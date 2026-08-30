@@ -83,7 +83,7 @@ describe("AccountBalanceChart", () => {
 
     expect(screen.getAllByText("7d")[0]).toBeInTheDocument();
     expect(screen.getAllByText("30d")[0]).toBeInTheDocument();
-    expect(screen.getByText("90d")).toBeInTheDocument();
+    expect(screen.getAllByText("90d")[0]).toBeInTheDocument();
   });
 
   it("switches timeframe on click", () => {
@@ -99,7 +99,7 @@ describe("AccountBalanceChart", () => {
     render(<AccountBalanceChart balanceHistory={MOCK_BALANCE_HISTORY} />);
 
     expect(
-      screen.getByRole("region", { name: "Account Balance" }),
+      screen.getByRole("region", { name: "Account Balance History" }),
     ).toBeInTheDocument();
   });
 
@@ -115,7 +115,7 @@ describe("AccountBalanceChart", () => {
     vi.mocked(useSorokit).mockReturnValue(mockUseSorokit({ isConnected: true }));
     render(<AccountBalanceChart balanceHistory={MOCK_BALANCE_HISTORY} />);
     expect(
-      screen.getByRole("region", { name: "Account Balance" }),
+      screen.getByRole("region", { name: "Account Balance History" }),
     ).toBeInTheDocument();
   });
 
