@@ -91,6 +91,7 @@ export function TransactionPanel({
   const xlmBalance = balances.find((b) => b.asset === "XLM")?.balance || "0";
   const xlmBalanceNumber = parseFloat(xlmBalance);
   const hasSufficientBalance = !isNaN(parsedAmount) && parsedAmount <= xlmBalanceNumber;
+  const selectedAssetBalance = assetOptions.find((b) => b.asset === selectedAsset);
 
   const canSubmit =
     isConnected &&
@@ -122,6 +123,7 @@ export function TransactionPanel({
         destination: dest.trim(),
         amount: amount.trim(),
         asset: selectedAsset,
+        assetIssuer: selectedAssetBalance?.assetIssuer,
         memoType,
         memo:
           memoType !== "none" && memo.trim() !== "" ? memo.trim() : undefined,
@@ -358,6 +360,11 @@ export function TransactionPanel({
                 setAmount(e.target.value);
                 setAmountDirty(true);
               }}
+              hint={
+                selectedAssetBalance
+                  ? `Balance: ${selectedAssetBalance.balance} ${selectedAsset}`
+                  : undefined
+              }
               error={
                 amountDirty
                   ? amount.trim() === ""
