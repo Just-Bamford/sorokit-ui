@@ -5,17 +5,17 @@ import {
   CheckmarkCircle01Icon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { memo, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useEffect, useMemo, useState } from "react";
 
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { useSorokit } from "@/context/useSorokit";
 import type { Transaction } from "@/lib/client";
+import { getClient } from "@/lib/client";
 import { cn, truncateAddress } from "@/lib/utils";
 
 const PAGE_SIZE = 10;
 const MEMO_TRUNCATE_LENGTH = 20;
-const PAGE_STORAGE_PREFIX = "sorokit-transaction-history-page:";
 const STROOPS_PER_XLM = 10_000_000;
 const TREND_DAYS = 7;
 const MS_PER_DAY = 86_400_000;
@@ -92,28 +92,6 @@ function TrendSparkline({ counts }: { counts: number[] }) {
       ))}
     </div>
   );
-}
-
-function readStoredPage(address: string | null): number {
-  if (!address) return 1;
-  try {
-    const storedPage = Number.parseInt(
-      sessionStorage.getItem(`${PAGE_STORAGE_PREFIX}${address}`) ?? "",
-      10,
-    );
-    return Number.isInteger(storedPage) && storedPage > 0 ? storedPage : 1;
-  } catch {
-    return 1;
-  }
-}
-
-function storePage(address: string | null, page: number): void {
-  if (!address) return;
-  try {
-    sessionStorage.setItem(`${PAGE_STORAGE_PREFIX}${address}`, String(page));
-  } catch {
-    // sessionStorage may be unavailable; pagination still works for this render.
-  }
 }
 
 function truncateMemo(memo: string): string {
@@ -232,28 +210,23 @@ export function TransactionHistory({
   endDate,
   showTrend,
 }: TransactionHistoryProps = {}) {
-  const { address, isConnected, network, client } = useSorokit();
+  const { address, isConnected, network, client: contextClient } = useSorokit();
+  const client = contextClient ?? getClient();
+  const [prevAddress, setPrevAddress] = useState(address);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [multiOpOnly, setMultiOpOnly] = useState(false);
   const [txs, setTxs] = useState<Transaction[]>([]);
-  const [page, setPage] = useState(() => readStoredPage(address));
+  const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Reset pagination and any previous address's results as soon as the
-  // connected address changes, so a stale page number or stale rows never
-  // briefly show for the new address before its own fetch resolves. Skipped
-  // on the initial mount — the useState initializers already cover that
-  // case, and re-running here would just enqueue a redundant extra render.
-  const previousAddressRef = useRef(address);
-  useEffect(() => {
-    if (previousAddressRef.current === address) return;
-    previousAddressRef.current = address;
-    setPage(readStoredPage(address));
+  if (prevAddress !== address) {
+    setPrevAddress(address);
+    setPage(1);
     setTotal(0);
     setTxs([]);
-  }, [address]);
+  }
 
   useEffect(() => {
     if (!address || !client) return;
@@ -288,7 +261,6 @@ export function TransactionHistory({
 
   function changePage(nextPage: number) {
     setPage(nextPage);
-    storePage(address, nextPage);
   }
 
   const filteredTxs = useMemo(

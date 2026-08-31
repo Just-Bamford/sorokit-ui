@@ -127,6 +127,48 @@ describe("ContractEventFeed", () => {
     expect(getEvents).toHaveBeenCalledTimes(callsAfterPause);
   });
 
+  it("pauses polling while the screen is hidden and resumes when visible again (#533)", async () => {
+    const getEvents = vi.fn().mockResolvedValue({ data: [], error: null });
+    vi.mocked(getClient).mockReturnValue({
+      soroban: { getEvents },
+    } as unknown as SorokitClient);
+
+    let observerCallback: IntersectionObserverCallback | undefined;
+    vi.stubGlobal(
+      "IntersectionObserver",
+      class {
+        constructor(callback: IntersectionObserverCallback) {
+          observerCallback = callback;
+        }
+        observe = vi.fn();
+        disconnect = vi.fn();
+        unobserve = vi.fn();
+      },
+    );
+
+    render(<ContractEventFeed contractId={CONTRACT_ID} pollInterval={500} />);
+    act(() => { vi.advanceTimersByTime(0); });
+    await waitFor(() => expect(getEvents).toHaveBeenCalledTimes(1));
+
+    // Dashboard hides this screen (mount-once, keep-alive pattern).
+    act(() => {
+      observerCallback?.([{ isIntersecting: false } as IntersectionObserverEntry], {} as IntersectionObserver);
+    });
+
+    // Well past the poll interval while hidden — no new calls.
+    act(() => { vi.advanceTimersByTime(1500); });
+    expect(getEvents).toHaveBeenCalledTimes(1);
+
+    // Becomes visible again — polling resumes.
+    act(() => {
+      observerCallback?.([{ isIntersecting: true } as IntersectionObserverEntry], {} as IntersectionObserver);
+    });
+    act(() => { vi.advanceTimersByTime(500) });
+    await waitFor(() => expect(getEvents).toHaveBeenCalledTimes(2));
+
+    vi.unstubAllGlobals();
+  });
+
   it("triggers a new load when contractId changes", async () => {
     const getEvents = vi.fn().mockResolvedValue({ data: [], error: null });
     vi.mocked(getClient).mockReturnValue({

@@ -10,8 +10,19 @@ vi.mock("@/context/useSorokit", () => ({
 }));
 
 vi.mock("@/components/AssetBadge", () => ({
-  AssetBadge: ({ balance }: { balance: { asset: string } }) => (
-    <span data-testid="asset-badge">{balance.asset}</span>
+  AssetBadge: ({
+    balance,
+    showIssuerSuffix,
+  }: {
+    balance: { asset: string; assetIssuer?: string };
+    showIssuerSuffix?: boolean;
+  }) => (
+    <span data-testid="asset-badge">
+      {balance.asset}
+      {showIssuerSuffix && balance.assetIssuer
+        ? ` (${balance.assetIssuer.slice(0, 4)}...${balance.assetIssuer.slice(-4)})`
+        : ""}
+    </span>
   ),
 }));
 
@@ -455,6 +466,7 @@ describe("BalanceList", () => {
     });
   });
 
+<<<<<<< HEAD
   // ── LP shares grouping (#328) ───────────────────────────────────────────────
   describe("liquidity pool shares grouping", () => {
     it("does not render a 'Liquidity Pool Shares' heading when there are no LP balances", () => {
@@ -756,8 +768,10 @@ describe("BalanceList", () => {
     });
   });
 
-  describe("duplicate asset code from different issuers (issue #524)", () => {
+  describe("duplicate asset code from different issuers (issue #524 & #601)", () => {
     it("renders both rows without a React key collision when two balances share an asset code but differ by issuer", () => {
+      const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
       const usdcIssuerA = {
         asset: "USDC",
         balance: "10.0000000",
@@ -781,11 +795,15 @@ describe("BalanceList", () => {
 
       render(<BalanceList />);
 
-      // Before the fix, both rows shared key="USDC" (b.asset) — React would
-      // treat the second as an update to the first rather than a separate
-      // row, so only one row would ever actually mount.
       const badges = screen.getAllByTestId("asset-badge");
       expect(badges).toHaveLength(2);
+
+      const duplicateWarnings = consoleSpy.mock.calls.filter(([msg]) =>
+        typeof msg === "string" && msg.includes("same key")
+      );
+
+      expect(duplicateWarnings).toHaveLength(0);
+      consoleSpy.mockRestore();
     });
   });
 });

@@ -20,57 +20,42 @@ import { TransactionStatusTracker } from "./TransactionStatusTracker";
 
 type State = "idle" | "loading" | "success" | "error";
 
-type MemoType = "none" | "text" | "id";
+export type MemoType = "none" | "text" | "id";
 
-const MEMO_TYPES: { value: MemoType; label: string }[] = [
-  { value: "text", label: "Text" },
-  { value: "id", label: "ID" },
-  { value: "none", label: "None" },
+export const MEMO_TYPES: { value: MemoType; label: string }[] = [
+  { value: "none", label: "No memo" },
+  { value: "text", label: "Text memo" },
+  { value: "id", label: "Memo ID" },
 ];
-
-/**
- * Maps a Stellar network to its Stellar Expert explorer URL segment.
- * Returns `null` for networks Stellar Expert does not index (e.g. futurenet,
- * localnet), in which case the hash is shown as plain text.
- */
-function explorerTxUrl(
-  network: NetworkInfo | null,
-  hash: string,
-): string | null {
-  if (!network) return null;
-  const segment =
-    network.name === "mainnet"
-      ? "public"
-      : network.name === "testnet"
-        ? "testnet"
-        : null;
-  if (!segment) return null;
-  return `https://stellar.expert/explorer/${segment}/tx/${hash}`;
-}
 
 export interface TransactionPanelProps {
   defaultDestination?: string;
   defaultAmount?: string;
   defaultMemo?: string;
+  previewMode?: boolean;
   onSuccess?: (result: TxResult) => void;
   onError?: (error: string) => void;
-  /**
-   * When true (the default), the footer button opens a confirmation modal
-   * showing transaction details before `submitTransaction` runs. Pass
-   * `false` to submit immediately on click, skipping the preview step.
-   */
-  previewMode?: boolean;
+  className?: string;
 }
 
 export function TransactionPanel({
   defaultDestination = "",
   defaultAmount = "",
   defaultMemo = "",
+  previewMode = true,
   onSuccess,
   onError,
-  previewMode = true,
+  className,
 }: TransactionPanelProps = {}) {
-  const { address, isConnected, balances, isLoadingAccount, network, account, client } = useSorokit();
+  const {
+    address,
+    client,
+    account,
+    network,
+    isLoadingAccount,
+    isConnected,
+    balances = [],
+  } = useSorokit();
   const [dest, setDest] = useState(defaultDestination);
   const [destDirty, setDestDirty] = useState(false);
   const [amount, setAmount] = useState(defaultAmount);
@@ -102,30 +87,18 @@ export function TransactionPanel({
   const isMemoIdValid =
     memoType !== "id" || (memo.trim() !== "" && /^\d+$/.test(memo.trim()));
 
-  // Check 7-decimal precision limit
-  const decimalPlaces = amount.includes(".") ? amount.split(".")[1]?.length ?? 0 : 0;
-  const isDecimalPrecisionValid = decimalPlaces <= 7;
-
-  // Check if user has sufficient balance for the selected asset. XLM must
-  // keep a 1 XLM minimum reserve, so only that much is spendable.
+  // Get XLM balance from balances array
+  const xlmBalance = balances.find((b) => b.asset === "XLM")?.balance || "0";
+  const xlmBalanceNumber = parseFloat(xlmBalance);
+  const hasSufficientBalance = !isNaN(parsedAmount) && parsedAmount <= xlmBalanceNumber;
   const selectedAssetBalance = assetOptions.find((b) => b.asset === selectedAsset);
-  const XLM_MINIMUM_RESERVE = 1;
-  const availableBalance = selectedAssetBalance
-    ? selectedAsset === "XLM"
-      ? Math.max(0, parseFloat(selectedAssetBalance.balance) - XLM_MINIMUM_RESERVE)
-      : parseFloat(selectedAssetBalance.balance)
-    : undefined;
-  const insufficientBalance =
-    availableBalance !== undefined && parsedAmount > availableBalance;
 
   const canSubmit =
     isConnected &&
     isDestValid &&
     amount.trim() !== "" &&
     isAmountValid &&
-    isMemoIdValid &&
-    isDecimalPrecisionValid &&
-    !insufficientBalance;
+    hasSufficientBalance;
 
   /** The actual submission — only ever called from the confirm modal. */
   async function submitTransaction() {
@@ -184,6 +157,9 @@ export function TransactionPanel({
 
   /** Builds a preview of the transaction and opens the confirmation modal. */
   async function buildPreview() {
+    const sourceAddress = address;
+    if (!sourceAddress) return;
+
     setIsBuildingPreview(true);
     try {
       const { data: feeData } = client ? await client.transaction.estimateFee() : { data: null };
@@ -201,7 +177,7 @@ export function TransactionPanel({
           baseFeeStroops: feeData?.baseFee ?? "100",
           totalStroops: feeData?.recommended ?? feeData?.baseFee ?? "100",
         },
-        sourceAccount: address,
+        sourceAccount: sourceAddress,
         sequenceNumber: account?.sequence,
       });
     } finally {
@@ -210,7 +186,7 @@ export function TransactionPanel({
   }
 
   /** Form submit handler — fires on Send button click and Enter key press. */
-  function handleFormSubmit(e: React.FormEvent) {
+  function handleFormSubmit(e: React.SyntheticEvent) {
     e.preventDefault();
     if (state === "loading" || !address || !canSubmit) return;
     if (previewMode) {
@@ -223,7 +199,12 @@ export function TransactionPanel({
   const explorerUrl = result ? explorerTxUrl(network, result.hash) : null;
 
   return (
-    <div className="rounded-xl border border-line bg-surface overflow-hidden">
+    <div
+      className={cn(
+        "rounded-xl border border-line bg-surface overflow-hidden",
+        className,
+      )}
+    >
       <div className="px-5 py-4 border-b border-line">
         <h3 className="text-[14px] font-semibold text-ink">Send Payment</h3>
         <p className="text-[12px] text-ink-3 mt-0.5">
@@ -316,7 +297,16 @@ export function TransactionPanel({
             </div>
           </div>
         ) : (
-          <form id={formId} onSubmit={handleFormSubmit} className="flex flex-col gap-5">
+          <form
+            id={formId}
+            onSubmit={handleFormSubmit}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && e.target instanceof HTMLInputElement) {
+                handleFormSubmit(e);
+              }
+            }}
+            className="flex flex-col gap-5"
+          >
             <Input
               label="Destination Address"
               placeholder="G..."
@@ -361,6 +351,7 @@ export function TransactionPanel({
               type="number"
               placeholder="0.00"
               min="0.0000001"
+              max={xlmBalanceNumber || undefined}
               step="0.0000001"
               value={amount}
               onChange={(e) => {
@@ -380,24 +371,17 @@ export function TransactionPanel({
                       ? "Amount must be greater than 0"
                       : parsedAmount < 0.0000001
                         ? "Minimum amount is 0.0000001 XLM"
-                        : !isDecimalPrecisionValid
-                          ? "Maximum 7 decimal places allowed"
-                          : insufficientBalance
-                            ? selectedAsset === "XLM"
-                              ? `Amount exceeds available balance (${availableBalance?.toFixed(7) ?? "0"} XLM after minimum reserve)`
-                              : `Insufficient balance. Maximum: ${selectedAssetBalance?.balance ?? "0"}`
-                            : undefined
+                        : !hasSufficientBalance
+                          ? "Insufficient balance"
+                          : undefined
                   : undefined
               }
               disabled={state === "loading"}
             />
             <Select
-              label="Memo Type"
+              label="Memo type"
               value={memoType}
-              onChange={(e) => {
-                setMemoType(e.target.value as MemoType);
-                setMemo("");
-              }}
+              onChange={(e) => setMemoType(e.target.value as MemoType)}
               disabled={state === "loading"}
             >
               {MEMO_TYPES.map((m) => (
@@ -531,4 +515,14 @@ function ExternalLinkIcon({ className }: { className?: string }) {
       <path d="M18 14v4a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h4" />
     </svg>
   );
+}
+
+function explorerTxUrl(network: NetworkInfo | null, hash: string): string | null {
+  if (!network) return null;
+  const isTestnet =
+    network.passphrase?.toLowerCase().includes("testnet") ?? false;
+  const prefix = isTestnet
+    ? "https://testnet.stellar.expert/explorer/public/tx/"
+    : "https://stellar.expert/explorer/public/tx/";
+  return `${prefix}${hash}`;
 }

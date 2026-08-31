@@ -23,11 +23,8 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Run linter
-        run: npm run lint
-
-      - name: Typecheck
-        run: npm run typecheck
+      - name: Validate (typecheck + lint)
+        run: npm run validate
 
       - name: Build
         run: npm run build
@@ -71,3 +68,22 @@ jobs:
         with:
           name: axe-results
           path: axe-results.json
+
+  e2e:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Run E2E smoke tests
+        run: npm run test:e2e

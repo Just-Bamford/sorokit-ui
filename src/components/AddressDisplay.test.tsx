@@ -28,7 +28,7 @@ describe("AddressDisplay", () => {
       expect(copyBtn).not.toHaveAttribute("tabindex", "-1");
       await act(async () => { fireEvent.click(copyBtn); });
       expect(mockWriteText).toHaveBeenCalledWith(address);
-      expect(screen.getByRole("button", { name: "Address copied" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Copied!" })).toBeInTheDocument();
       await waitFor(() => {
         expect(screen.getByRole("button", { name: "Copy address to clipboard" })).toBeInTheDocument();
       }, { timeout: 2500 });
@@ -39,6 +39,65 @@ describe("AddressDisplay", () => {
       const copyBtn = screen.getByRole("button", { name: "Copy address to clipboard" });
       expect(copyBtn.className).toContain("opacity-50");
       expect(copyBtn.className).not.toContain("opacity-0");
+    });
+  });
+
+  describe("copy operation & clipboard fallback (#604)", () => {
+    it("resets aria-label back to 'Copy address' after 2 seconds using fake timers", async () => {
+      vi.useFakeTimers();
+      render(<AddressDisplay address={address} />);
+      const copyBtn = screen.getByRole("button", { name: "Copy address" });
+      
+      await act(async () => {
+        fireEvent.click(copyBtn);
+      });
+      
+      expect(screen.getByRole("button", { name: "Copied!" })).toBeInTheDocument();
+
+      act(() => {
+        vi.advanceTimersByTime(2000);
+      });
+
+      expect(screen.getByRole("button", { name: "Copy address" })).toBeInTheDocument();
+      vi.useRealTimers();
+    });
+
+    it("triggers document.execCommand fallback when navigator.clipboard.writeText rejects", async () => {
+      mockWriteText.mockRejectedValueOnce(new Error("Clipboard access denied"));
+      const execCommandSpy = vi.fn();
+      const originalExecCommand = document.execCommand;
+      document.execCommand = execCommandSpy;
+
+      render(<AddressDisplay address={address} />);
+      const copyBtn = screen.getByRole("button", { name: "Copy address" });
+
+      await act(async () => {
+        fireEvent.click(copyBtn);
+      });
+
+      expect(execCommandSpy).toHaveBeenCalledWith("copy");
+      expect(screen.getByRole("button", { name: "Copied!" })).toBeInTheDocument();
+
+      document.execCommand = originalExecCommand;
+    });
+
+    it("does not throw an error when clipboard is unavailable and fallback fails", async () => {
+      mockWriteText.mockRejectedValueOnce(new Error("Clipboard access denied"));
+      const originalExecCommand = document.execCommand;
+      document.execCommand = vi.fn().mockImplementation(() => {
+        throw new Error("execCommand unsupported");
+      });
+
+      render(<AddressDisplay address={address} />);
+      const copyBtn = screen.getByRole("button", { name: "Copy address" });
+
+      await expect(
+        act(async () => {
+          fireEvent.click(copyBtn);
+        })
+      ).resolves.not.toThrow();
+
+      document.execCommand = originalExecCommand;
     });
   });
 

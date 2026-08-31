@@ -174,54 +174,109 @@ describe("TransactionHistory", () => {
     await waitFor(() => {
       expect(getHistory).toHaveBeenCalledWith(ADDRESS, 2, PAGE_SIZE);
     });
-    expect(sessionStorage.getItem(`sorokit-transaction-history-page:${ADDRESS}`)).toBe("2");
   });
 
-  it("restores the current page from sessionStorage for the connected address", async () => {
-    sessionStorage.setItem(`sorokit-transaction-history-page:${ADDRESS}`, "2");
-    const getHistory = vi.fn().mockResolvedValue({
-      data: Array.from({ length: PAGE_SIZE }, (_, i) => makeTx(i)),
-      error: null,
-      total: 25,
+  it("resets page to 1, clears total and txs when wallet address changes (#578)", async () => {
+    const ADDRESS_B = "GBBD7PQPDHFWD6Q5CFF3J4L3R75EAE6Z4NZZ2QY6M2G4K4W4P6N3X2B1";
+    const getHistory = vi.fn().mockImplementation((addr: string, _page: number) => {
+      if (addr === ADDRESS) {
+        return Promise.resolve({
+          data: Array.from({ length: PAGE_SIZE }, (_, i) => makeTx(i)),
+          error: null,
+          total: 30, // 3 pages
+        });
+      }
+      return Promise.resolve({
+        data: [makeTx(99)],
+        error: null,
+        total: 1, // 1 page
+      });
     });
-    mockClient.transaction.getHistory = getHistory;
 
-    render(<TransactionHistory />);
-    act(() => { vi.advanceTimersByTime(0); });
+    vi.mocked(getClient).mockReturnValue({
+      transaction: { getHistory },
+    } as unknown as SorokitClient);
 
-    await waitFor(() =>
-      expect(getHistory).toHaveBeenCalledWith(ADDRESS, 2, PAGE_SIZE),
-    );
-  });
-
-  it("persists and restores page in sessionStorage across remount", async () => {
-    const getHistory = vi.fn().mockResolvedValue({
-      data: Array.from({ length: PAGE_SIZE }, (_, i) => makeTx(i)),
-      error: null,
-      total: 25,
-    });
-    mockClient.transaction.getHistory = getHistory;
-
-    const { unmount } = render(<TransactionHistory />);
+    const { rerender } = render(<TransactionHistory />);
     act(() => { vi.advanceTimersByTime(0); });
     await waitFor(() => screen.getByText("Next"));
 
+    // Navigate to page 2 on account A
     fireEvent.click(screen.getByRole("button", { name: /next/i }));
     act(() => { vi.advanceTimersByTime(0); });
     await waitFor(() => {
-      expect(screen.getByText(/page 2 of 3/i)).toBeInTheDocument();
-    });
-    expect(
-      sessionStorage.getItem(`sorokit-transaction-history-page:${ADDRESS}`),
-    ).toBe("2");
-
-    getHistory.mockClear();
-    unmount();
-
-    render(<TransactionHistory />);
-    act(() => { vi.advanceTimersByTime(0); });
-    await waitFor(() => {
       expect(getHistory).toHaveBeenCalledWith(ADDRESS, 2, PAGE_SIZE);
+    });
+
+    // Switch wallet address to account B
+    vi.mocked(useSorokit).mockReturnValue({
+      address: ADDRESS_B,
+      isConnected: true,
+    } as unknown as ReturnType<typeof useSorokit>);
+
+    rerender(<TransactionHistory />);
+    act(() => { vi.advanceTimersByTime(0); });
+
+    await waitFor(() => {
+      expect(getHistory).toHaveBeenCalledWith(ADDRESS_B, 1, PAGE_SIZE);
+    });
+
+    // Verify page 2 was never requested for account B
+    expect(getHistory).not.toHaveBeenCalledWith(ADDRESS_B, 2, PAGE_SIZE);
+    expect(getHistory).not.toHaveBeenCalledWith(ADDRESS_B, 3, PAGE_SIZE);
+  });
+
+  it("clears total and transactions before new fetch completes when address changes (#578)", async () => {
+    const ADDRESS_B = "GBBD7PQPDHFWD6Q5CFF3J4L3R75EAE6Z4NZZ2QY6M2G4K4W4P6N3X2B1";
+    let resolveAccountB: (value: unknown) => void;
+    const pendingPromise = new Promise((resolve) => {
+      resolveAccountB = resolve;
+    });
+
+    const getHistory = vi.fn().mockImplementation((addr: string) => {
+      if (addr === ADDRESS) {
+        return Promise.resolve({
+          data: Array.from({ length: PAGE_SIZE }, (_, i) => makeTx(i)),
+          error: null,
+          total: 25,
+        });
+      }
+      return pendingPromise;
+    });
+
+    vi.mocked(getClient).mockReturnValue({
+      transaction: { getHistory },
+    } as unknown as SorokitClient);
+
+    const { rerender } = render(<TransactionHistory />);
+    act(() => { vi.advanceTimersByTime(0); });
+    await waitFor(() => screen.getByText(/25 transactions/i));
+
+    // Switch wallet address to account B (fetch remains pending)
+    vi.mocked(useSorokit).mockReturnValue({
+      address: ADDRESS_B,
+      isConnected: true,
+    } as unknown as ReturnType<typeof useSorokit>);
+
+    rerender(<TransactionHistory />);
+    act(() => { vi.advanceTimersByTime(0); });
+
+    // The stale total counter ("25 transactions") and stale pagination should be gone
+    expect(screen.queryByText(/25 transactions/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/page \d+ of/i)).not.toBeInTheDocument();
+
+    // Resolve Account B fetch
+    act(() => {
+      resolveAccountB({
+        data: [makeTx(1)],
+        error: null,
+        total: 1,
+      });
+      vi.advanceTimersByTime(0);
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText(/1 transaction/i)).toBeInTheDocument();
     });
   });
 

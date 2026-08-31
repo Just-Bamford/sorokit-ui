@@ -238,6 +238,68 @@ describe("FeeEstimator", { timeout: 15000 }, () => {
 
       vi.useRealTimers();
     });
+
+    it("pauses polling while hidden and resumes when visible again (#533)", async () => {
+      vi.useFakeTimers();
+      const estimateFee = vi.fn().mockResolvedValue({
+        data: { baseFee: "100", recommended: "500" },
+        error: null,
+      });
+      vi.mocked(getClient).mockReturnValue({
+        transaction: { estimateFee },
+      } as unknown as SorokitClient);
+
+      let observerCallback: IntersectionObserverCallback | undefined;
+      const observe = vi.fn();
+      const disconnect = vi.fn();
+      vi.stubGlobal(
+        "IntersectionObserver",
+        class {
+          constructor(callback: IntersectionObserverCallback) {
+            observerCallback = callback;
+          }
+          observe = observe;
+          disconnect = disconnect;
+          unobserve = vi.fn();
+        },
+      );
+
+      render(<FeeEstimator refreshInterval={5000} />);
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(0);
+      });
+      expect(estimateFee).toHaveBeenCalledTimes(1);
+
+      // Simulate Dashboard hiding this screen (the ContractEventFeed-style
+      // "mount once, keep alive" pattern — see Dashboard.tsx).
+      act(() => {
+        observerCallback?.([{ isIntersecting: false } as IntersectionObserverEntry], {} as IntersectionObserver);
+      });
+
+      // Time passes while hidden — no new calls should fire.
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(10_000);
+      });
+      expect(estimateFee).toHaveBeenCalledTimes(1);
+
+      // Becomes visible again — polling resumes.
+      act(() => {
+        observerCallback?.([{ isIntersecting: true } as IntersectionObserverEntry], {} as IntersectionObserver);
+      });
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(0);
+      });
+      expect(estimateFee).toHaveBeenCalledTimes(2);
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(5000);
+      });
+      expect(estimateFee).toHaveBeenCalledTimes(3);
+
+      vi.useRealTimers();
+      vi.unstubAllGlobals();
+    });
   });
 
   describe("FeeCell export", () => {

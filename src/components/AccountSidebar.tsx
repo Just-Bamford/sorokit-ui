@@ -5,7 +5,7 @@
  * (with copy), all asset balances, the 5 most recent transactions, and
  * account quick links (network switcher, block explorer, disconnect).
  * Designed to be triggered from anywhere in the app (e.g. via
- * `WalletConnectButton`'s `onOpenModal`).
+ * a button click or other trigger).
  *
  * Balance/account data refreshes on an interval while the sidebar is open,
  * via `useSorokit().refreshAccount()` — sorokit-ui has no blockchain logic
@@ -17,13 +17,13 @@
  * @component
  * @example
  * ```tsx
- * import { AccountSidebar, WalletConnectButton } from 'sorokit-ui';
+ * import { AccountSidebar } from 'sorokit-ui';
  *
- * function TopBar() {
+ * function App() {
  *   const [open, setOpen] = useState(false);
  *   return (
  *     <>
- *       <WalletConnectButton onOpenModal={() => setOpen(true)} />
+ *       <button onClick={() => setOpen(true)}>Open Account</button>
  *       <AccountSidebar open={open} onClose={() => setOpen(false)} />
  *     </>
  *   );
