@@ -37,13 +37,15 @@
     "build:app": "vite build",
     "preview": "vite preview",
     "test": "vitest run",
+    "test:e2e": "playwright test",
     "test:watch": "vitest",
     "test:coverage": "vitest --coverage",
     "test:exports": "tsc -p tsconfig.test-exports.json",
     "lint": "eslint . --ext .ts,.tsx",
-    "typecheck": "tsc --noEmit",
-    "typecheck:watch": "tsc --noEmit --watch",
-    "type-check": "tsc --noEmit",
+    "typecheck": "tsc -b --noEmit",
+    "typecheck:watch": "tsc -b --noEmit --watch",
+    "type-check": "tsc -b --noEmit",
+    "validate": "npm run typecheck && npm run lint",
     "size": "npm run build && size-limit"
   },
   "dependencies": {
@@ -68,11 +70,12 @@
     "react-json-view-lite": "^2.5.0",
     "sorokit-core": ">=0.1.0",
     "tailwind-merge": "^3.5.0",
-    "tailwindcss": "^3.0.0"
+    "tailwindcss": "^4.3.3"
   },
   "devDependencies": {
     "@axe-core/cli": "^4.12.1",
     "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.62.1",
     "@size-limit/preset-small-lib": "^12.1.0",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "^6.9.1",
@@ -133,7 +136,7 @@
   "peerDependencies": {
     "@creit.tech/stellar-wallets-kit": ">=1.0.0",
     "sorokit-core": ">=0.1.0",
-    "tailwindcss": "^3.0.0"
+    "tailwindcss": "^4.0.0"
   },
   "peerDependenciesMeta": {
     "@creit.tech/stellar-wallets-kit": {

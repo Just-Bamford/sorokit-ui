@@ -51,6 +51,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { Badge } from "@/components/ui/Badge";
 import { useSorokit } from "@/context/useSorokit";
+import { useIsVisible } from "@/hooks/useIsVisible";
 import type { ContractEvent } from "@/lib/client";
 import { cn, truncateAddress } from "@/lib/utils";
 
@@ -249,6 +250,7 @@ export function ContractEventFeed({
     filterTypes ? new Set(filterTypes) : null,
   );
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [containerRef, isVisible] = useIsVisible<HTMLDivElement>();
 
   // IDs highlighted as newly-arrived. `prevEventIdsRef` is the baseline from
   // the previous successful load — `null` means no baseline yet, so the very
@@ -332,7 +334,14 @@ export function ContractEventFeed({
   }, [load]);
 
   useEffect(() => {
-    if (live && pollInterval > 0 && contractId.trim() !== "") {
+    // Dashboard keeps a visited screen mounted rather than unmounting it,
+    // to preserve in-progress state — see the comment in Dashboard.tsx.
+    // Gating on isVisible (in addition to the user-facing `live` toggle)
+    // stops this from polling in the background once its screen is no
+    // longer the active one (#533), without disturbing `live`'s own
+    // on/off semantics — resuming visibility restores whatever `live` was
+    // already set to.
+    if (live && isVisible && pollInterval > 0 && contractId.trim() !== "") {
       intervalRef.current = setInterval(() => {
         void load();
       }, pollInterval);
@@ -342,14 +351,16 @@ export function ContractEventFeed({
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
-  }, [live, pollInterval, load, contractId]);
+  }, [live, isVisible, pollInterval, load, contractId]);
 
-  // Tick the relative "Last updated" label once a second while polling is active.
+  // Tick the relative "Last updated" label once a second while polling is
+  // active and visible — ticking a hidden screen's clock wastes a timer for
+  // a label nobody can see.
   useEffect(() => {
-    if (!live || pollInterval <= 0) return;
+    if (!live || !isVisible || pollInterval <= 0) return;
     const tickId = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(tickId);
-  }, [live, pollInterval]);
+  }, [live, isVisible, pollInterval]);
 
   const typeCounts = useMemo(() => {
     const counts = new Map<string, number>();
@@ -387,7 +398,10 @@ export function ContractEventFeed({
     activeTypes ? activeTypes.has(type) : true;
 
   return (
-    <div className={cn("rounded-xl border border-line bg-surface overflow-hidden", className)}>
+    <div
+      ref={containerRef}
+      className={cn("rounded-xl border border-line bg-surface overflow-hidden", className)}
+    >
       <div className="flex items-center justify-between px-5 py-4 border-b border-line">
         <div>
           <h3 className="text-[14px] font-semibold text-ink">

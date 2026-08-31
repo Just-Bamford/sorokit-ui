@@ -1,8 +1,6 @@
 import { Cancel01Icon,Menu01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { useState } from "react";
 
-import { AccountSidebar } from "@/components/AccountSidebar";
 import { NetworkSwitcher } from "@/components/NetworkSwitcher";
 import type { NavSection } from "@/components/Sidebar";
 import { WalletConnectButton } from "@/components/WalletConnectButton";
@@ -22,7 +20,6 @@ export function TopBar({
 }) {
   const { error, clearError } = useSorokit();
   const { title, sub } = LABELS[active];
-  const [accountSidebarOpen, setAccountSidebarOpen] = useState(false);
 
   return (
     <div className="shrink-0">
@@ -70,15 +67,9 @@ export function TopBar({
         </div>
         <div className="flex items-center gap-2.5">
           <NetworkSwitcher />
-          <WalletConnectButton
-            onOpenModal={() => setAccountSidebarOpen(true)}
-          />
+          <WalletConnectButton />
         </div>
       </header>
-      <AccountSidebar
-        open={accountSidebarOpen}
-        onClose={() => setAccountSidebarOpen(false)}
-      />
     </div>
   );
 }

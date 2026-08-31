@@ -131,6 +131,31 @@ describe("SorokitProvider", () => {
     expect(mockClient.network.switchNetwork).toHaveBeenCalledWith("testnet");
   });
 
+  it("switchNetwork clears stale address, account, and balances from the previous network (#523)", async () => {
+    renderWithProvider(<TestComponent />, { client: mockClient });
+
+    await act(async () => {
+      fireEvent.click(screen.getByText("Connect"));
+    });
+
+    expect(screen.getByTestId("address")).toHaveTextContent("GABC");
+    await waitFor(() => {
+      expect(screen.getByTestId("account")).toHaveTextContent("100");
+      expect(screen.getByTestId("balances")).toHaveTextContent("1");
+    });
+
+    // Switching networks without this reset would leave the previous
+    // network's address/account/balances on screen — e.g. showing mainnet
+    // balances while the UI reports the user is now on testnet.
+    await act(async () => {
+      fireEvent.click(screen.getByText("Switch"));
+    });
+
+    expect(screen.getByTestId("address")).toHaveTextContent("none");
+    expect(screen.getByTestId("account")).toHaveTextContent("none");
+    expect(screen.getByTestId("balances")).toHaveTextContent("0");
+  });
+
   it("memoizes the context value across parent re-renders", async () => {
     const Wrapper = ({ client }: { client: ReturnType<typeof getClient> }) => {
       const [, setTick] = useState(0);

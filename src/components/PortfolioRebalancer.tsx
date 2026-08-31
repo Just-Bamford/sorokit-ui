@@ -265,7 +265,7 @@ export function PortfolioRebalancer({ className }: PortfolioRebalancerProps) {
       totalCostUsd,
     );
     setHistory((h) => [record, ...h]);
-  }, [swaps, execution.isRunning, portfolioAssets, prices, balances, refreshAccount]);
+  }, [swaps, execution.isRunning, portfolioAssets, prices, balances, refreshAccount, client.soroban]);
 
   const cancelExecution = useCallback(() => {
     abortRef.current?.abort();

@@ -18,7 +18,7 @@ export default defineConfig({
   plugins: [react(), tailwindcss(), dts({
     tsconfigPath: path.resolve(__dirname, "tsconfig.app.json"),
     entryRoot: path.resolve(__dirname, "src"),
-    outDir: "dist",
+    outDirs: ["dist"],
     include: ["src/components", "src/lib"],
   })],
   build: {
