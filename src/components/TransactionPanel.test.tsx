@@ -15,6 +15,8 @@ vi.mock("@/lib/client", () => ({
 }));
 
 const DEFAULT_FEE = { baseFee: "100", recommended: "100" };
+const VALID_DEST = "GCEZWKCA5VLDNRLN3RPRJMRZOX3Z6G5CHCGSNFHEYVXM3XOJMDS674JZ";
+const MOCK_SOURCE = "GBRPYHIL2CI3WHGSUJGY6O7SROQOMJG7QBCACN4QPKUOQNXJDGONXHPA";
 
 function mockGetClient(
   submitImpl: ReturnType<typeof vi.fn>,
@@ -22,12 +24,19 @@ function mockGetClient(
     .fn()
     .mockResolvedValue({ data: DEFAULT_FEE, error: null }),
 ) {
-  vi.mocked(getClient).mockReturnValue({
+  const clientObj = {
     transaction: {
       submit: submitImpl,
       estimateFee: feeImpl,
     },
-  } as unknown as ReturnType<typeof getClient>);
+  } as unknown as ReturnType<typeof getClient>;
+  vi.mocked(getClient).mockReturnValue(clientObj);
+  vi.mocked(useSorokit).mockReturnValue({
+    address: MOCK_SOURCE,
+    client: clientObj,
+    isConnected: true,
+    balances: [{ asset: "XLM", balance: "100" }],
+  } as unknown as ReturnType<typeof useSorokit>);
 }
 
 /** Clicks the Send button (label varies by selected asset), waits for the confirmation modal, then confirms. */
@@ -45,19 +54,14 @@ async function reviewAndConfirm() {
 describe("TransactionPanel", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(useSorokit).mockReturnValue({
-      address: "GABC",
-      isConnected: true,
-      balances: [{ asset: "XLM", balance: "100" }],
-    } as unknown as ReturnType<typeof useSorokit>);
+    mockGetClient(vi.fn().mockResolvedValue({ data: { hash: "h1", ledger: 1 }, error: null }));
   });
 
   it("opens a confirmation modal before submitting, showing the operation, fee, and source account", async () => {
     mockGetClient(vi.fn().mockResolvedValue({ data: { hash: "h1", ledger: 1 }, error: null }));
     render(<TransactionPanel />);
 
-    const validDest = "GCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC";
-    fireEvent.change(screen.getByLabelText("Destination Address"), { target: { value: validDest } });
+    fireEvent.change(screen.getByLabelText("Destination Address"), { target: { value: VALID_DEST } });
     fireEvent.change(screen.getByLabelText("Amount (XLM)"), { target: { value: "10" } });
     fireEvent.click(screen.getByRole("button", { name: /^Send (XLM|USDC)/ }));
 
@@ -65,7 +69,7 @@ describe("TransactionPanel", () => {
     expect(dialog).toHaveTextContent("Payment — 1 operation");
     expect(dialog).toHaveTextContent("Send 10 XLM to");
     expect(dialog).toHaveTextContent("100 stroops");
-    expect(dialog).toHaveTextContent("GABC");
+    expect(dialog).toHaveTextContent("GBRPYHIL...ONXHPA");
   });
 
   it("does not submit until Confirm & Sign is clicked in the modal", async () => {
@@ -73,8 +77,7 @@ describe("TransactionPanel", () => {
     mockGetClient(mockSubmit);
     render(<TransactionPanel />);
 
-    const validDest = "GCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC";
-    fireEvent.change(screen.getByLabelText("Destination Address"), { target: { value: validDest } });
+    fireEvent.change(screen.getByLabelText("Destination Address"), { target: { value: VALID_DEST } });
     fireEvent.change(screen.getByLabelText("Amount (XLM)"), { target: { value: "10" } });
     fireEvent.click(screen.getByRole("button", { name: /^Send (XLM|USDC)/ }));
 
@@ -87,8 +90,7 @@ describe("TransactionPanel", () => {
     mockGetClient(mockSubmit);
     render(<TransactionPanel />);
 
-    const validDest = "GCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC";
-    fireEvent.change(screen.getByLabelText("Destination Address"), { target: { value: validDest } });
+    fireEvent.change(screen.getByLabelText("Destination Address"), { target: { value: VALID_DEST } });
     fireEvent.change(screen.getByLabelText("Amount (XLM)"), { target: { value: "10" } });
     fireEvent.click(screen.getByRole("button", { name: /^Send (XLM|USDC)/ }));
 
@@ -97,7 +99,7 @@ describe("TransactionPanel", () => {
 
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     expect(mockSubmit).not.toHaveBeenCalled();
-    expect(screen.getByLabelText("Destination Address")).toHaveValue(validDest);
+    expect(screen.getByLabelText("Destination Address")).toHaveValue(VALID_DEST);
   });
 
   it("handles loading, success, and error states", async () => {
@@ -113,8 +115,7 @@ describe("TransactionPanel", () => {
     const destInput = screen.getByLabelText("Destination Address");
     const amountInput = screen.getByLabelText("Amount (XLM)");
 
-    const validDest = "GCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC";
-    fireEvent.change(destInput, { target: { value: validDest } });
+    fireEvent.change(destInput, { target: { value: VALID_DEST } });
     fireEvent.change(amountInput, { target: { value: "10" } });
 
     await reviewAndConfirm();
@@ -133,19 +134,18 @@ describe("TransactionPanel", () => {
   });
 
   it("handles error state", async () => {
-    const mockSubmit = vi.fn().mockResolvedValue({ data: null, error: "Insufficient balance" });
+    const mockSubmit = vi.fn().mockResolvedValue({ data: null, error: "Submission rejected by network" });
     mockGetClient(mockSubmit);
 
     render(<TransactionPanel />);
 
-    const validDest = "GCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC";
-    fireEvent.change(screen.getByLabelText("Destination Address"), { target: { value: validDest } });
+    fireEvent.change(screen.getByLabelText("Destination Address"), { target: { value: VALID_DEST } });
     fireEvent.change(screen.getByLabelText("Amount (XLM)"), { target: { value: "10" } });
 
     await reviewAndConfirm();
 
     expect(await screen.findByText("Transaction failed")).toBeInTheDocument();
-    expect(screen.getByText("Insufficient balance")).toBeInTheDocument();
+    expect(screen.getByText("Submission rejected by network")).toBeInTheDocument();
   });
 
   it("shows validation error for invalid destination address", async () => {
@@ -168,8 +168,7 @@ describe("TransactionPanel", () => {
     expect(submitBtn).toBeDisabled();
 
     // Type valid address
-    const validDest = "GCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC";
-    fireEvent.change(destInput, { target: { value: validDest } });
+    fireEvent.change(destInput, { target: { value: VALID_DEST } });
     expect(screen.getByText("Stellar address must be 56 characters")).toHaveClass("opacity-0");
     expect(submitBtn).not.toBeDisabled();
   });
@@ -187,8 +186,7 @@ describe("TransactionPanel", () => {
     const amountInput = screen.getByLabelText("Amount (XLM)");
     const submitBtn = screen.getByRole("button", { name: /^Send (XLM|USDC)/ });
 
-    const validDest = "GCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC";
-    fireEvent.change(destInput, { target: { value: validDest } });
+    fireEvent.change(destInput, { target: { value: VALID_DEST } });
     fireEvent.change(amountInput, { target: { value: "10" } });
 
     // With no address, canSubmit is false (isConnected relies on address in
@@ -203,7 +201,7 @@ describe("TransactionPanel", () => {
 
   it("shows self-payment warning when destination equals source address", async () => {
     vi.mocked(useSorokit).mockReturnValue({
-      address: "GCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC",
+      address: VALID_DEST,
       isConnected: true,
       balances: [{ asset: "XLM", balance: "100" }],
     } as unknown as ReturnType<typeof useSorokit>);
@@ -215,7 +213,7 @@ describe("TransactionPanel", () => {
     const submitBtn = screen.getByRole("button", { name: /^Send (XLM|USDC)/ });
 
     fireEvent.change(destInput, {
-      target: { value: "GCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC" },
+      target: { value: VALID_DEST },
     });
     fireEvent.change(amountInput, { target: { value: "10" } });
 
@@ -232,8 +230,7 @@ describe("TransactionPanel", () => {
     const amountInput = screen.getByLabelText("Amount (XLM)");
     const submitBtn = screen.getByRole("button", { name: /^Send (XLM|USDC)/ });
 
-    const validDest = "GCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC";
-    fireEvent.change(destInput, { target: { value: validDest } });
+    fireEvent.change(destInput, { target: { value: VALID_DEST } });
 
     // Type amount below 0.0000001
     fireEvent.change(amountInput, { target: { value: "0.00000005" } });
@@ -251,7 +248,7 @@ describe("TransactionPanel", () => {
 
   it("shows insufficient balance error when amount exceeds XLM balance", async () => {
     vi.mocked(useSorokit).mockReturnValue({
-      address: "GABC",
+      address: MOCK_SOURCE,
       isConnected: true,
       balances: [{ asset: "XLM", balance: "10" }],
     } as unknown as ReturnType<typeof useSorokit>);
@@ -260,10 +257,9 @@ describe("TransactionPanel", () => {
 
     const destInput = screen.getByLabelText("Destination Address");
     const amountInput = screen.getByLabelText("Amount (XLM)");
-    const submitBtn = screen.getByRole("button", { name: "Send Payment" });
+    const submitBtn = screen.getByRole("button", { name: /^Send (XLM|USDC)/ });
 
-    const validDest = "GCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC";
-    fireEvent.change(destInput, { target: { value: validDest } });
+    fireEvent.change(destInput, { target: { value: VALID_DEST } });
 
     // Type amount exceeding balance (10 XLM)
     fireEvent.change(amountInput, { target: { value: "15" } });
@@ -279,27 +275,15 @@ describe("TransactionPanel", () => {
 
   it("allows submission when amount is within XLM balance", async () => {
     const mockSubmit = vi.fn().mockResolvedValue({ data: { hash: "txhash123", ledger: 100 }, error: null });
+    mockGetClient(mockSubmit);
 
-    vi.mocked(getClient).mockReturnValue({
-      transaction: {
-        submit: mockSubmit,
-      },
-    } as unknown as ReturnType<typeof getClient>);
-
-    vi.mocked(useSorokit).mockReturnValue({
-      address: "GABC",
-      isConnected: true,
-      balances: [{ asset: "XLM", balance: "100" }],
-    } as unknown as ReturnType<typeof useSorokit>);
-
-    render(<TransactionPanel />);
+    render(<TransactionPanel previewMode={false} />);
 
     const destInput = screen.getByLabelText("Destination Address");
     const amountInput = screen.getByLabelText("Amount (XLM)");
-    const submitBtn = screen.getByRole("button", { name: "Send Payment" });
+    const submitBtn = screen.getByRole("button", { name: /^Send (XLM|USDC)/ });
 
-    const validDest = "GCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC";
-    fireEvent.change(destInput, { target: { value: validDest } });
+    fireEvent.change(destInput, { target: { value: VALID_DEST } });
     fireEvent.change(amountInput, { target: { value: "50" } });
 
     expect(submitBtn).not.toBeDisabled();

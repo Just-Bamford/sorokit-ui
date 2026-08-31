@@ -20,9 +20,43 @@ import { TransactionStatusTracker } from "./TransactionStatusTracker";
 
 type State = "idle" | "loading" | "success" | "error";
 
-export function TransactionPanel() {
-  const { address, isConnected, balances } = useSorokit();
-  const [dest, setDest] = useState("");
+export type MemoType = "none" | "text" | "id";
+
+export const MEMO_TYPES: { value: MemoType; label: string }[] = [
+  { value: "none", label: "No memo" },
+  { value: "text", label: "Text memo" },
+  { value: "id", label: "Memo ID" },
+];
+
+export interface TransactionPanelProps {
+  defaultDestination?: string;
+  defaultAmount?: string;
+  defaultMemo?: string;
+  previewMode?: boolean;
+  onSuccess?: (result: TxResult) => void;
+  onError?: (error: string) => void;
+  className?: string;
+}
+
+export function TransactionPanel({
+  defaultDestination = "",
+  defaultAmount = "",
+  defaultMemo = "",
+  previewMode = true,
+  onSuccess,
+  onError,
+  className,
+}: TransactionPanelProps = {}) {
+  const {
+    address,
+    client,
+    account,
+    network,
+    isLoadingAccount,
+    isConnected,
+    balances = [],
+  } = useSorokit();
+  const [dest, setDest] = useState(defaultDestination);
   const [destDirty, setDestDirty] = useState(false);
   const [amount, setAmount] = useState(defaultAmount);
   const [amountDirty, setAmountDirty] = useState(false);
@@ -52,22 +86,6 @@ export function TransactionPanel() {
   const isAmountValid = !isNaN(parsedAmount) && parsedAmount >= 0.0000001;
   const isMemoIdValid =
     memoType !== "id" || (memo.trim() !== "" && /^\d+$/.test(memo.trim()));
-
-  // Check 7-decimal precision limit
-  const decimalPlaces = amount.includes(".") ? amount.split(".")[1]?.length ?? 0 : 0;
-  const isDecimalPrecisionValid = decimalPlaces <= 7;
-
-  // Check if user has sufficient balance for the selected asset. XLM must
-  // keep a 1 XLM minimum reserve, so only that much is spendable.
-  const selectedAssetBalance = assetOptions.find((b) => b.asset === selectedAsset);
-  const XLM_MINIMUM_RESERVE = 1;
-  const availableBalance = selectedAssetBalance
-    ? selectedAsset === "XLM"
-      ? Math.max(0, parseFloat(selectedAssetBalance.balance) - XLM_MINIMUM_RESERVE)
-      : parseFloat(selectedAssetBalance.balance)
-    : undefined;
-  const insufficientBalance =
-    availableBalance !== undefined && parsedAmount > availableBalance;
 
   // Get XLM balance from balances array
   const xlmBalance = balances.find((b) => b.asset === "XLM")?.balance || "0";
@@ -179,7 +197,12 @@ export function TransactionPanel() {
   const explorerUrl = result ? explorerTxUrl(network, result.hash) : null;
 
   return (
-    <div className="rounded-xl border border-line bg-surface overflow-hidden">
+    <div
+      className={cn(
+        "rounded-xl border border-line bg-surface overflow-hidden",
+        className,
+      )}
+    >
       <div className="px-5 py-4 border-b border-line">
         <h3 className="text-[14px] font-semibold text-ink">Send Payment</h3>
         <p className="text-[12px] text-ink-3 mt-0.5">
@@ -348,11 +371,10 @@ export function TransactionPanel() {
               }
               disabled={state === "loading"}
             />
-            <Input
-              label="Memo (optional)"
-              placeholder="Text memo"
-              value={memo}
-              onChange={(e) => setMemo(e.target.value || "")}
+            <Select
+              label="Memo type"
+              value={memoType}
+              onChange={(e) => setMemoType(e.target.value as MemoType)}
               disabled={state === "loading"}
             >
               {MEMO_TYPES.map((m) => (
@@ -486,4 +508,14 @@ function ExternalLinkIcon({ className }: { className?: string }) {
       <path d="M18 14v4a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h4" />
     </svg>
   );
+}
+
+function explorerTxUrl(network: NetworkInfo | null, hash: string): string | null {
+  if (!network) return null;
+  const isTestnet =
+    network.passphrase?.toLowerCase().includes("testnet") ?? false;
+  const prefix = isTestnet
+    ? "https://testnet.stellar.expert/explorer/public/tx/"
+    : "https://stellar.expert/explorer/public/tx/";
+  return `${prefix}${hash}`;
 }
