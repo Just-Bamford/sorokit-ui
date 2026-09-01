@@ -4,7 +4,8 @@ import path from "path";
 import { defineConfig } from "vite";
 
 export default defineConfig({
-  plugins: [react(), tailwindcss()],
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  plugins: [react(), tailwindcss()] as any[],
   build: {
     lib: {
       entry: path.resolve(__dirname, 'src/components/index.ts'),

@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { useSorokit } from "@/context/useSorokit";
+import { getClient } from "@/lib/client";
 import { truncateAddress } from "@/lib/utils";
 
 import { WalletConnectButton } from "./WalletConnectButton";
@@ -23,6 +24,7 @@ describe("WalletConnectButton", () => {
     overrides: Partial<ReturnType<typeof useSorokit>> = {},
   ) {
     return {
+      get client() { return getClient(); },
       address: null,
       walletName: null,
       isConnected: false,
@@ -219,13 +221,13 @@ describe("WalletConnectButton", () => {
       }).not.toThrow();
 
       // Dropdown with disconnect button appears
-      const disconnectBtn = screen.getByRole("button", { name: /disconnect/i });
+      const disconnectBtn = screen.getByRole("menuitem", { name: /disconnect/i });
       expect(disconnectBtn).toBeInTheDocument();
 
       // Clicking again closes the dropdown
       fireEvent.click(addressPill);
       expect(
-        screen.queryByRole("button", { name: /disconnect/i }),
+        screen.queryByRole("menuitem", { name: /disconnect/i }),
       ).not.toBeInTheDocument();
     });
   });
@@ -263,8 +265,8 @@ describe("WalletConnectButton", () => {
       fireEvent.click(screen.getByRole("button", { name: /wallet connected/i }));
       expect(screen.getByText("Disconnecting…")).toBeInTheDocument();
       expect(
-        screen.getByRole("button", { name: /disconnect/i }),
-      ).toBeDisabled();
+        screen.getByRole("menuitem", { name: /disconnect/i }),
+      ).toHaveAttribute("aria-disabled", "true");
     });
 
     it("clears the error banner after a successful connect clears the error", () => {

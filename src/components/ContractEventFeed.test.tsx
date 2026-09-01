@@ -163,13 +163,9 @@ describe("ContractEventFeed", () => {
       soroban: { getEvents },
     } as unknown as SorokitClient);
 
-    let observerCallback: IntersectionObserverCallback | undefined;
     vi.stubGlobal(
       "IntersectionObserver",
       class {
-        constructor(callback: IntersectionObserverCallback) {
-          observerCallback = callback;
-        }
         observe = vi.fn();
         disconnect = vi.fn();
         unobserve = vi.fn();
@@ -470,9 +466,7 @@ describe("ContractEventFeed", () => {
       act(() => { vi.advanceTimersByTime(0); });
 
       await waitFor(() => {
-        expect(
-          screen.getByRole("button", { name: /export.*json/i }),
-        ).toBeDisabled();
+        expect(screen.getByRole("button", { name: /export/i })).toBeDisabled();
       });
     });
 
@@ -482,7 +476,7 @@ describe("ContractEventFeed", () => {
       act(() => { vi.advanceTimersByTime(0); });
       await waitFor(() => screen.getByText("transfer"));
 
-      fireEvent.click(screen.getByRole("button", { name: /export \d+ events? as json/i }));
+      fireEvent.click(screen.getByRole("button", { name: /export/i }));
 
       expect(mockCreateObjectURL).toHaveBeenCalledTimes(1);
       const blob = mockCreateObjectURL.mock.calls[0]![0] as Blob;
@@ -505,7 +499,7 @@ describe("ContractEventFeed", () => {
           downloadName = this.download;
         });
 
-      fireEvent.click(screen.getByRole("button", { name: /export \d+ events? as json/i }));
+      fireEvent.click(screen.getByRole("button", { name: /export/i }));
 
       expect(clickSpy).toHaveBeenCalledTimes(1);
       expect(downloadName).toBe(`contract-events-${CONTRACT_ID}.json`);

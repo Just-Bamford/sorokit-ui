@@ -142,8 +142,8 @@ describe('Mock Client - Issue #30 Fixes', () => {
       expect(page3.total).toBe(25);
 
       // Verify that page 1 and page 2 return completely different transactions
-      const page1Ids = page1.data?.map(t => t.id);
-      const page2Ids = page2.data?.map(t => t.id);
+      const page1Ids = page1.data?.map(t => t.hash);
+      const page2Ids = page2.data?.map(t => t.hash);
       expect(page1Ids).not.toEqual(page2Ids);
     });
   });

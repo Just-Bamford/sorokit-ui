@@ -135,12 +135,12 @@ describe("TransactionPanel", () => {
     await reviewAndConfirm();
 
     // Check success state
-    expect(await screen.findByText("Transaction submitted")).toBeInTheDocument();
+    expect(await screen.findByText(/Transaction submitted/i)).toBeInTheDocument();
     expect(screen.getByText("Ledger #100")).toBeInTheDocument();
     expect(screen.getByText("txhash123")).toBeInTheDocument();
 
     // Test "New Transaction" button resets state
-    const newTxBtn = screen.getByRole("button", { name: "New Transaction" });
+    const newTxBtn = screen.getByRole("button", { name: /New Transaction/i });
     fireEvent.click(newTxBtn);
 
     expect(screen.getByLabelText("Destination Address")).toHaveValue("");
@@ -322,7 +322,7 @@ describe("TransactionPanel", () => {
     it("populates the asset selector with the correct asset codes from context balances", () => {
       vi.mocked(useSorokit).mockReturnValue({
         address: "GABC",
-        isConnected: true,
+        isConnected: true, get client() { return getClient(); },
         balances,
       } as unknown as ReturnType<typeof useSorokit>);
 
@@ -340,7 +340,7 @@ describe("TransactionPanel", () => {
       mockGetClient(mockSubmit);
       vi.mocked(useSorokit).mockReturnValue({
         address: "GABC",
-        isConnected: true,
+        isConnected: true, get client() { return getClient(); },
         balances,
       } as unknown as ReturnType<typeof useSorokit>);
 
@@ -361,7 +361,7 @@ describe("TransactionPanel", () => {
 
       await reviewAndConfirm();
 
-      await screen.findByText("Transaction submitted");
+      await screen.findByText(/Transaction submitted/i);
       expect(mockSubmit).toHaveBeenCalledWith(
         expect.objectContaining({ asset: "USDC" }),
       );
@@ -370,7 +370,7 @@ describe("TransactionPanel", () => {
     it("disables the asset selector when no balances are loaded", () => {
       vi.mocked(useSorokit).mockReturnValue({
         address: "GABC",
-        isConnected: true,
+        isConnected: true, get client() { return getClient(); },
         balances: [],
       } as unknown as ReturnType<typeof useSorokit>);
 
@@ -471,8 +471,6 @@ describe("TransactionPanel", () => {
 
   // ── Acceptance criteria ────────────────────────────────────────────────────
   describe("acceptance criteria", () => {
-    const VALID_DEST = "GCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC";
-
     it("AC1: Send button is disabled when destination field is empty", () => {
       render(<TransactionPanel />);
 
@@ -525,17 +523,7 @@ describe("TransactionPanel", () => {
       const mockSubmit = vi
         .fn()
         .mockResolvedValue({ data: { hash: TX_HASH, ledger: 42 }, error: null });
-      const mockClient = {
-        transaction: {
-          submit: mockSubmit,
-          estimateFee: vi.fn().mockResolvedValue({ data: DEFAULT_FEE, error: null }),
-        },
-      } as unknown as ReturnType<typeof import("@/lib/client").getClient>;
-      vi.mocked(useSorokit).mockReturnValue({
-        address: "GABC",
-        isConnected: true,
-        client: mockClient,
-      } as unknown as ReturnType<typeof useSorokit>);
+      mockGetClient(mockSubmit);
 
       render(<TransactionPanel />);
 
@@ -558,17 +546,7 @@ describe("TransactionPanel", () => {
       const mockSubmit = vi
         .fn()
         .mockResolvedValue({ data: null, error: ERROR_MSG });
-      const mockClient = {
-        transaction: {
-          submit: mockSubmit,
-          estimateFee: vi.fn().mockResolvedValue({ data: DEFAULT_FEE, error: null }),
-        },
-      } as unknown as ReturnType<typeof import("@/lib/client").getClient>;
-      vi.mocked(useSorokit).mockReturnValue({
-        address: "GABC",
-        isConnected: true,
-        client: mockClient,
-      } as unknown as ReturnType<typeof useSorokit>);
+      mockGetClient(mockSubmit);
 
       render(<TransactionPanel />);
 
@@ -589,17 +567,7 @@ describe("TransactionPanel", () => {
       const mockSubmit = vi
         .fn()
         .mockResolvedValue({ data: { hash: "somehash", ledger: 1 }, error: null });
-      const mockClient = {
-        transaction: {
-          submit: mockSubmit,
-          estimateFee: vi.fn().mockResolvedValue({ data: DEFAULT_FEE, error: null }),
-        },
-      } as unknown as ReturnType<typeof import("@/lib/client").getClient>;
-      vi.mocked(useSorokit).mockReturnValue({
-        address: "GABC",
-        isConnected: true,
-        client: mockClient,
-      } as unknown as ReturnType<typeof useSorokit>);
+      mockGetClient(mockSubmit);
 
       render(<TransactionPanel />);
 
@@ -630,17 +598,7 @@ describe("TransactionPanel", () => {
       const mockSubmit = vi
         .fn()
         .mockResolvedValue({ data: null, error: "Insufficient balance" });
-      const mockClient = {
-        transaction: {
-          submit: mockSubmit,
-          estimateFee: vi.fn().mockResolvedValue({ data: DEFAULT_FEE, error: null }),
-        },
-      } as unknown as ReturnType<typeof import("@/lib/client").getClient>;
-      vi.mocked(useSorokit).mockReturnValue({
-        address: "GABC",
-        isConnected: true,
-        client: mockClient,
-      } as unknown as ReturnType<typeof useSorokit>);
+      mockGetClient(mockSubmit);
 
       render(<TransactionPanel />);
 
@@ -706,6 +664,178 @@ describe("TransactionPanel", () => {
     });
   });
 
+  describe("success state details", () => {
+    it("shows a Successful badge and an explorer link on a known network", async () => {
+      const mockSubmit = vi
+        .fn()
+        .mockResolvedValue({ data: { hash: "txhash123", ledger: 100 }, error: null });
+      mockGetClient(mockSubmit);
+      vi.mocked(useSorokit).mockReturnValue({
+        address: "GABC",
+        isConnected: true,
+        client: getClient(),
+        balances: [{ asset: "XLM", balance: "100" }],
+        network: {
+          name: "testnet",
+          passphrase: "Test SDF Network ; September 2015",
+          rpcUrl: "https://soroban-testnet.stellar.org",
+          horizonUrl: "https://horizon-testnet.stellar.org",
+        },
+      } as unknown as ReturnType<typeof useSorokit>);
+
+      render(<TransactionPanel />);
+
+      const validDest = VALID_DEST;
+      fireEvent.change(screen.getByLabelText("Destination Address"), { target: { value: validDest } });
+      fireEvent.change(screen.getByLabelText("Amount (XLM)"), { target: { value: "10" } });
+
+      await reviewAndConfirm();
+      await screen.findByText(/Transaction submitted/i);
+
+      expect(screen.getByText("Successful")).toBeInTheDocument();
+      const link = screen.getByRole("link", { name: /view on stellar expert/i });
+      expect(link).toHaveAttribute(
+        "href",
+        "https://testnet.stellar.expert/explorer/public/tx/txhash123",
+      );
+    });
+  });
+
+  describe("default prop pre-fill (#351)", () => {
+    it("pre-fills the destination input from defaultDestination", () => {
+      const validDest = VALID_DEST;
+      render(<TransactionPanel defaultDestination={validDest} />);
+      expect(screen.getByLabelText("Destination Address")).toHaveValue(validDest);
+    });
+
+    it("pre-fills the amount input from defaultAmount", () => {
+      render(<TransactionPanel defaultAmount="42.5" />);
+      expect(screen.getByLabelText("Amount (XLM)")).toHaveValue(42.5);
+    });
+
+    it("pre-fills the memo input from defaultMemo", () => {
+      render(<TransactionPanel defaultMemo="Invoice #1001" />);
+      expect(screen.getByLabelText("Memo (optional)")).toHaveValue("Invoice #1001");
+    });
+
+    it("leaves all fields empty when no defaults are provided", () => {
+      render(<TransactionPanel />);
+      expect(screen.getByLabelText("Destination Address")).toHaveValue("");
+      expect(screen.getByLabelText("Amount (XLM)")).toHaveValue(null);
+      expect(screen.getByLabelText("Memo (optional)")).toHaveValue("");
+    });
+  });
+
+  describe("onSuccess / onError callbacks (#351)", () => {
+    it("calls onSuccess with the transaction result after a successful submit", async () => {
+      const txResult = { hash: "txhash123", ledger: 100 };
+      const mockSubmit = vi.fn().mockResolvedValue({ data: txResult, error: null });
+      mockGetClient(mockSubmit);
+      const onSuccess = vi.fn();
+      const onError = vi.fn();
+
+      render(<TransactionPanel onSuccess={onSuccess} onError={onError} />);
+
+      const validDest = VALID_DEST;
+      fireEvent.change(screen.getByLabelText("Destination Address"), { target: { value: validDest } });
+      fireEvent.change(screen.getByLabelText("Amount (XLM)"), { target: { value: "10" } });
+
+      await reviewAndConfirm();
+      await screen.findByText(/Transaction submitted/i);
+
+      expect(onSuccess).toHaveBeenCalledWith(txResult);
+      expect(onError).not.toHaveBeenCalled();
+    });
+
+    it("calls onError with the error message when the API returns an error", async () => {
+      const mockSubmit = vi.fn().mockResolvedValue({ data: null, error: "Insufficient balance" });
+      mockGetClient(mockSubmit);
+      const onSuccess = vi.fn();
+      const onError = vi.fn();
+
+      render(<TransactionPanel onSuccess={onSuccess} onError={onError} />);
+
+      const validDest = VALID_DEST;
+      fireEvent.change(screen.getByLabelText("Destination Address"), { target: { value: validDest } });
+      fireEvent.change(screen.getByLabelText("Amount (XLM)"), { target: { value: "10" } });
+
+      await reviewAndConfirm();
+      await screen.findByText("Transaction failed");
+
+      await waitFor(() => { expect(onError).toHaveBeenCalledWith("Insufficient balance"); });
+      expect(onSuccess).not.toHaveBeenCalled();
+    });
+
+    it("calls onError with the thrown error's message when submit rejects", async () => {
+      const mockSubmit = vi.fn().mockRejectedValue(new Error("Network unreachable"));
+      mockGetClient(mockSubmit);
+      const onSuccess = vi.fn();
+      const onError = vi.fn();
+
+      render(<TransactionPanel onSuccess={onSuccess} onError={onError} />);
+
+      const validDest = VALID_DEST;
+      fireEvent.change(screen.getByLabelText("Destination Address"), { target: { value: validDest } });
+      fireEvent.change(screen.getByLabelText("Amount (XLM)"), { target: { value: "10" } });
+
+      await reviewAndConfirm();
+      await screen.findByText("Transaction failed");
+
+      await waitFor(() => { expect(onError).toHaveBeenCalledWith("Network unreachable"); });
+      expect(onSuccess).not.toHaveBeenCalled();
+    });
+
+    it("does not throw when onSuccess/onError are not provided", async () => {
+      const mockSubmit = vi.fn().mockResolvedValue({ data: { hash: "h1", ledger: 1 }, error: null });
+      mockGetClient(mockSubmit);
+
+      render(<TransactionPanel />);
+
+      const validDest = VALID_DEST;
+      fireEvent.change(screen.getByLabelText("Destination Address"), { target: { value: validDest } });
+      fireEvent.change(screen.getByLabelText("Amount (XLM)"), { target: { value: "10" } });
+
+      await reviewAndConfirm();
+      expect(await screen.findByText(/Transaction submitted/i)).toBeInTheDocument();
+    });
+  });
+
+  describe("memo character counter (#351)", () => {
+    it("shows the counter in the default (non-red) color under 28 characters", () => {
+      render(<TransactionPanel />);
+      const memoInput = screen.getByLabelText("Memo (optional)");
+      fireEvent.change(memoInput, { target: { value: "a".repeat(27) } });
+
+      const counter = screen.getByText("27/28");
+      expect(counter.className).toContain("text-ink-3");
+      expect(counter.className).not.toContain("text-red");
+    });
+
+    it("turns the counter red at exactly 28 characters", () => {
+      render(<TransactionPanel />);
+      const memoInput = screen.getByLabelText("Memo (optional)");
+      fireEvent.change(memoInput, { target: { value: "a".repeat(28) } });
+
+      const counter = screen.getByText("28/28");
+      expect(counter.className).toContain("text-red");
+    });
+
+    it("stays red beyond 28 characters", () => {
+      render(<TransactionPanel />);
+      const memoInput = screen.getByLabelText("Memo (optional)");
+      fireEvent.change(memoInput, { target: { value: "a".repeat(35) } });
+
+      const counter = screen.getByText("35/28");
+      expect(counter.className).toContain("text-red");
+    });
+
+    it("does not render a counter for memo type ID or None", () => {
+      render(<TransactionPanel />);
+      fireEvent.change(screen.getByLabelText("Memo type"), { target: { value: "none" } });
+      expect(screen.queryByText(/^\d+\/28$/)).not.toBeInTheDocument();
+    });
+  });
+
   // ── previewMode (#315) ──────────────────────────────────────────────────────
   describe("previewMode", () => {
     it("submits directly without a confirmation modal when previewMode is false", async () => {
@@ -717,25 +847,89 @@ describe("TransactionPanel", () => {
         address: "GABC",
         isConnected: true,
         network: { name: "testnet", passphrase: "x", rpcUrl: "x", horizonUrl: "x" },
+        balances: [{ asset: "XLM", balance: "100" }],
+        client: getClient(),
       } as unknown as ReturnType<typeof useSorokit>);
 
-      render(<TransactionPanel />);
+      render(<TransactionPanel previewMode={false} />);
 
       const validDest = VALID_DEST;
       fireEvent.change(screen.getByLabelText("Destination Address"), { target: { value: validDest } });
       fireEvent.change(screen.getByLabelText("Amount (XLM)"), { target: { value: "10" } });
 
-      await reviewAndConfirm();
-      await screen.findByText("Transaction submitted");
+      await act(async () => {
+        fireEvent.click(screen.getByRole("button", { name: /^Send (XLM|USDC)/ }));
+      });
 
-      expect(screen.getByText("Successful")).toBeInTheDocument();
-      const link = screen.getByRole("link", { name: /view on stellar expert/i });
-      expect(link).toHaveAttribute(
-        "href",
-        "https://stellar.expert/explorer/testnet/tx/txhash123",
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+      await screen.findByText(/Transaction submitted/i);
+      expect(mockSubmit).toHaveBeenCalledWith(
+        expect.objectContaining({ destination: validDest, amount: "10" }),
       );
     });
 
+    it("shows a confirmation modal by default (previewMode omitted)", async () => {
+      mockGetClient(vi.fn().mockResolvedValue({ data: { hash: "h1", ledger: 1 }, error: null }));
+      render(<TransactionPanel />);
+
+      const validDest = VALID_DEST;
+      fireEvent.change(screen.getByLabelText("Destination Address"), { target: { value: validDest } });
+      fireEvent.change(screen.getByLabelText("Amount (XLM)"), { target: { value: "10" } });
+      fireEvent.click(screen.getByRole("button", { name: /^Send (XLM|USDC)/ }));
+
+      expect(await screen.findByRole("dialog", { name: /confirm transaction/i })).toBeInTheDocument();
+    });
+  });
+
+  // ── Asset-specific Send button label (#343) ────────────────────────────────
+  describe("send button label is asset-specific (#343)", () => {
+    const balances = [
+      { asset: "XLM", balance: "100.0000000", assetType: "native" as const },
+      {
+        asset: "USDC",
+        balance: "50.0000000",
+        assetType: "credit_alphanum4" as const,
+        assetCode: "USDC",
+        assetIssuer: "GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN",
+      },
+    ];
+
+    it("renders 'Send XLM' when only XLM is available", () => {
+      render(<TransactionPanel />);
+      expect(
+        screen.getByRole("button", { name: "Send XLM" }),
+      ).toBeInTheDocument();
+    });
+
+    it("renders 'Send XLM' while XLM is the selected asset (multi-balance wallet)", () => {
+      vi.mocked(useSorokit).mockReturnValue({
+        address: "GABC",
+        isConnected: true, get client() { return getClient(); },
+        balances,
+      } as unknown as ReturnType<typeof useSorokit>);
+
+      render(<TransactionPanel />);
+      expect(
+        screen.getByRole("button", { name: "Send XLM" }),
+      ).toBeInTheDocument();
+    });
+
+    it("renders 'Send USDC' once the user switches the asset select to USDC", () => {
+      vi.mocked(useSorokit).mockReturnValue({
+        address: "GABC",
+        isConnected: true, get client() { return getClient(); },
+        balances,
+      } as unknown as ReturnType<typeof useSorokit>);
+
+      render(<TransactionPanel />);
+      fireEvent.change(screen.getByLabelText("Asset"), {
+        target: { value: "USDC" },
+      });
+      expect(screen.getByRole("button", { name: "Send USDC" })).toBeInTheDocument();
+    });
+  });
+
+  describe("success state details (#563)", () => {
     it("gives both explorer links an accessible aria-label (#563)", async () => {
       const mockSubmit = vi
         .fn()

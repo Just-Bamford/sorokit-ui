@@ -1,9 +1,8 @@
 import { render, screen } from "@testing-library/react";
-import type { ReactElement } from "react";
 import { describe, expect, it, vi } from "vitest";
 
 import { useSorokit } from "@/context/useSorokit";
-import type { NetworkInfo, NetworkName } from "@/lib/client";
+import type { NetworkInfo } from "@/lib/client";
 
 import { NetworkBanner } from "./NetworkBanner";
 
@@ -15,23 +14,6 @@ function mockNetwork(network: NetworkInfo | null) {
   vi.mocked(useSorokit).mockReturnValue({
     network,
   } as unknown as ReturnType<typeof useSorokit>);
-}
-
-/**
- * Renders `element` (defaulting to a bare `<NetworkBanner />`) against a
- * synthetic network built from just its `name` — for tests that only care
- * about how the banner reacts to an arbitrary/unknown network name, without
- * spelling out a full `NetworkInfo` fixture (rpcUrl/passphrase/horizonUrl
- * are irrelevant to `NetworkBanner`, which only ever reads `network.name`).
- */
-function renderWithNetwork(name: NetworkName, element: ReactElement = <NetworkBanner />) {
-  mockNetwork({
-    name,
-    rpcUrl: "https://example-rpc.test",
-    passphrase: `${name} passphrase`,
-    horizonUrl: "https://example-horizon.test",
-  });
-  return render(element);
 }
 
 const MAINNET_NETWORK: NetworkInfo = {

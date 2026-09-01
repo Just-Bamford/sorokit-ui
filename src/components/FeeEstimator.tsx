@@ -30,6 +30,7 @@ export function FeeEstimator({
   onFeeLoad,
 }: FeeEstimatorProps) {
   const { client } = useSorokit();
+  const [containerRef, isVisible] = useIsVisible<HTMLDivElement>();
   const [fee, setFee] = useState<FeeData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

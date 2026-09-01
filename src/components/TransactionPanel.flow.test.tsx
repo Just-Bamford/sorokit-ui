@@ -10,7 +10,7 @@ import { createMockClient, MOCK_ADDRESS } from "@/lib/mock-client";
 import { TransactionPanel } from "./TransactionPanel";
 
 const DESTINATION =
-  "GCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC";
+  "GCEZWKCA5VLDNRLN3RPRJMRZOX3Z6G5CHCGSNFHEYVXM3XOJMDS674JZ";
 const SUCCESS_RESULT: TxResult = {
   hash: "transaction-hash-598",
   ledger: 598,

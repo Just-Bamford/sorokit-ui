@@ -240,6 +240,7 @@ export function ContractEventFeed({
   className,
 }: ContractEventFeedProps) {
   const { client } = useSorokit();
+  const [containerRef, isVisible] = useIsVisible<HTMLDivElement>();
   const [events, setEvents] = useState<ContractEvent[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -364,24 +365,18 @@ export function ContractEventFeed({
   // so changing the prop at runtime tears the old timer down and re-arms a new
   // one at the new period.
   useEffect(() => {
-    // Dashboard keeps a visited screen mounted rather than unmounting it,
-    // to preserve in-progress state — see the comment in Dashboard.tsx.
-    // Gating on isVisible (in addition to the user-facing `live` toggle)
-    // stops this from polling in the background once its screen is no
-    // longer the active one (#533), without disturbing `live`'s own
-    // on/off semantics — resuming visibility restores whatever `live` was
-    // already set to.
-    if (live && isVisible && pollInterval > 0 && contractId.trim() !== "") {
-      intervalRef.current = setInterval(() => {
-        void load();
-      }, pollInterval);
-    } else {
-      if (intervalRef.current) clearInterval(intervalRef.current);
+    if (!live || !isVisible || pollInterval <= 0 || contractId.trim() === "") {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+      return;
     }
-    if (!live || pollInterval <= 0 || contractId.trim() === "") return;
+
     intervalRef.current = setInterval(() => {
       void load();
     }, pollInterval);
+
     return () => {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);

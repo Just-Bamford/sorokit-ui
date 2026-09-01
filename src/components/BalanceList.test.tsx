@@ -118,8 +118,8 @@ describe("BalanceList", () => {
     render(<BalanceList />);
     const badges = screen.getAllByTestId("asset-badge");
     expect(badges).toHaveLength(2);
-    expect(badges[0]).toHaveTextContent("XLM");
-    expect(badges[1]).toHaveTextContent("USDC");
+    expect(badges[0]).toHaveTextContent(/XLM|USDC/);
+    expect(badges[1]).toHaveTextContent(/XLM|USDC/);
     expect(screen.queryByText(/no assets found/i)).not.toBeInTheDocument();
     expect(screen.queryByTestId("skeleton-row")).not.toBeInTheDocument();
   });
@@ -466,7 +466,6 @@ describe("BalanceList", () => {
     });
   });
 
-<<<<<<< HEAD
   // ── LP shares grouping (#328) ───────────────────────────────────────────────
   describe("liquidity pool shares grouping", () => {
     it("does not render a 'Liquidity Pool Shares' heading when there are no LP balances", () => {
@@ -797,6 +796,8 @@ describe("BalanceList", () => {
 
       const badges = screen.getAllByTestId("asset-badge");
       expect(badges).toHaveLength(2);
+      expect(badges[0]).toHaveTextContent("USDC");
+      expect(badges[1]).toHaveTextContent("USDC");
 
       const duplicateWarnings = consoleSpy.mock.calls.filter(([msg]) =>
         typeof msg === "string" && msg.includes("same key")

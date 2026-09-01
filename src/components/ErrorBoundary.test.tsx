@@ -24,27 +24,7 @@ afterEach(() => {
   vi.unstubAllEnvs();
 });
 
-function ThrowingComponent({ shouldThrow }: { shouldThrow: boolean }) {
-  if (shouldThrow) {
-    throw new Error("Test error!");
-  }
-  return <div data-testid="child-content">Child rendered successfully</div>;
-}
-
 describe("ErrorBoundary", () => {
-  it("renders children normally when no error is thrown", () => {
-    render(
-      <ErrorBoundary>
-        <ThrowingComponent shouldThrow={false} />
-      </ErrorBoundary>,
-    );
-
-    expect(screen.getByTestId("child-content")).toBeInTheDocument();
-    expect(screen.getByText("Child rendered successfully")).toBeInTheDocument();
-    expect(screen.queryByText("Something went wrong")).not.toBeInTheDocument();
-  });
-
-  it("renders default fallback when child throws, and resets when try again is clicked", () => {
   it("renders children normally when there is no error", () => {
     render(
       <ErrorBoundary>
@@ -129,16 +109,17 @@ describe("ErrorBoundary", () => {
 
   it("renders 'Reload page' button in the fallback UI", () => {
     vi.spyOn(console, "error").mockImplementation(() => {});
+    const originalLocation = window.location;
     const reloadMock = vi.fn();
     Object.defineProperty(window, "location", {
       configurable: true,
-      value: { reload: reloadMock },
+      value: { ...originalLocation, reload: reloadMock },
     });
 
     render(
       <ErrorBoundary>
         <ThrowingComponent shouldThrow={true} />
-      </ErrorBoundary>
+      </ErrorBoundary>,
     );
 
     const reloadBtn = screen.getByRole("button", { name: /reload page/i });
@@ -146,6 +127,11 @@ describe("ErrorBoundary", () => {
 
     fireEvent.click(reloadBtn);
     expect(reloadMock).toHaveBeenCalledTimes(1);
+
+    Object.defineProperty(window, "location", {
+      configurable: true,
+      value: originalLocation,
+    });
   });
 
   it("renders custom fallback prop and passes error and reset function", () => {

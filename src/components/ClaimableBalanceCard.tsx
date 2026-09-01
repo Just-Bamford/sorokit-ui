@@ -74,11 +74,16 @@ function BalanceRow({
     setClaimError(null);
     setShowConfirm(false);
     try {
-      const { error } = await client.account.claimBalance(cb.id);
+      const { data, error } = await client.account.claimBalance(cb.id);
       if (error) {
         // Issue #441: a failed claim shows an inline error and returns the
         // button to its normal state so the user can retry.
         setClaimError(error);
+        setClaiming(false);
+        return;
+      }
+      if (!data) {
+        setClaimError("Claim did not complete");
         setClaiming(false);
         return;
       }
@@ -220,10 +225,6 @@ export function ClaimableBalanceCard({ confirmThreshold }: ClaimableBalanceCardP
     setRefreshKey((k) => k + 1);
   }, []);
 
-  function handleClaimSuccess(balanceId: string) {
-    setBalances((prev) => prev.filter((b) => b.id !== balanceId));
-  }
-
   useEffect(() => {
     if (!address || !client) {
       return;
@@ -266,10 +267,6 @@ export function ClaimableBalanceCard({ confirmThreshold }: ClaimableBalanceCardP
       window.clearTimeout(timerId);
     };
   }, [address, client, refreshKey]);
-
-  function handleClaimed(id: string) {
-    setBalances((prev) => prev.filter((b) => b.id !== id));
-  }
 
   if (!isConnected) return null;
 

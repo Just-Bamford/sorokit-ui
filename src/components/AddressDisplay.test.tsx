@@ -13,7 +13,8 @@ beforeAll(() => {
 });
 
 beforeEach(() => {
-  mockWriteText.mockClear();
+  vi.useRealTimers();
+  mockWriteText.mockReset().mockResolvedValue(undefined);
 });
 
 describe("AddressDisplay", () => {
@@ -28,7 +29,7 @@ describe("AddressDisplay", () => {
       expect(copyBtn).not.toHaveAttribute("tabindex", "-1");
       await act(async () => { fireEvent.click(copyBtn); });
       expect(mockWriteText).toHaveBeenCalledWith(address);
-      expect(screen.getByRole("button", { name: "Copied!" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Address copied" })).toBeInTheDocument();
       await waitFor(() => {
         expect(screen.getByRole("button", { name: "Copy address to clipboard" })).toBeInTheDocument();
       }, { timeout: 2500 });
@@ -46,37 +47,37 @@ describe("AddressDisplay", () => {
     it("resets aria-label back to 'Copy address' after 2 seconds using fake timers", async () => {
       vi.useFakeTimers();
       render(<AddressDisplay address={address} />);
-      const copyBtn = screen.getByRole("button", { name: "Copy address" });
+      const copyBtn = screen.getByRole("button", { name: "Copy address to clipboard" });
       
       await act(async () => {
         fireEvent.click(copyBtn);
       });
       
-      expect(screen.getByRole("button", { name: "Copied!" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Address copied" })).toBeInTheDocument();
 
       act(() => {
         vi.advanceTimersByTime(2000);
       });
 
-      expect(screen.getByRole("button", { name: "Copy address" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Copy address to clipboard" })).toBeInTheDocument();
       vi.useRealTimers();
     });
 
     it("triggers document.execCommand fallback when navigator.clipboard.writeText rejects", async () => {
       mockWriteText.mockRejectedValueOnce(new Error("Clipboard access denied"));
-      const execCommandSpy = vi.fn();
+      const execCommandSpy = vi.fn().mockReturnValue(true);
       const originalExecCommand = document.execCommand;
       document.execCommand = execCommandSpy;
 
       render(<AddressDisplay address={address} />);
-      const copyBtn = screen.getByRole("button", { name: "Copy address" });
+      const copyBtn = screen.getByRole("button", { name: "Copy address to clipboard" });
 
       await act(async () => {
         fireEvent.click(copyBtn);
       });
 
       expect(execCommandSpy).toHaveBeenCalledWith("copy");
-      expect(screen.getByRole("button", { name: "Copied!" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Address copied" })).toBeInTheDocument();
 
       document.execCommand = originalExecCommand;
     });
@@ -89,7 +90,7 @@ describe("AddressDisplay", () => {
       });
 
       render(<AddressDisplay address={address} />);
-      const copyBtn = screen.getByRole("button", { name: "Copy address" });
+      const copyBtn = screen.getByRole("button", { name: "Copy address to clipboard" });
 
       await expect(
         act(async () => {

@@ -251,7 +251,7 @@ export function createMockClient(
 ): SorokitClient | { data: null; error: string } {
   let activeNetwork =
     networkName && networkName in NETWORKS ? networkName : "testnet";
-  let connectedAddress = MOCK_ADDRESS;
+  const connectedAddress = MOCK_ADDRESS;
 
   if (networkName && !(networkName in NETWORKS)) {
     const validNetworks = Object.keys(NETWORKS).join(", ");

@@ -159,7 +159,6 @@ export function TransactionPanel({
   async function buildPreview() {
     const sourceAddress = address;
     if (!sourceAddress) return;
-
     setIsBuildingPreview(true);
     try {
       const { data: feeData } = client ? await client.transaction.estimateFee() : { data: null };
@@ -334,7 +333,7 @@ export function TransactionPanel({
               label="Asset"
               value={selectedAsset}
               onChange={(e) => setAsset(e.target.value)}
-              disabled={state === "loading" || isLoadingAccount}
+              disabled={state === "loading" || isLoadingAccount || assetOptions.length === 0}
             >
               {isLoadingAccount ? (
                 <option value="">Loading assets…</option>
@@ -522,7 +521,8 @@ function ExternalLinkIcon({ className }: { className?: string }) {
 function explorerTxUrl(network: NetworkInfo | null, hash: string): string | null {
   if (!network) return null;
   const isTestnet =
-    network.passphrase?.toLowerCase().includes("testnet") ?? false;
+    network.name === "testnet" ||
+    (network.passphrase?.toLowerCase().includes("testnet") ?? false);
   const prefix = isTestnet
     ? "https://testnet.stellar.expert/explorer/public/tx/"
     : "https://stellar.expert/explorer/public/tx/";

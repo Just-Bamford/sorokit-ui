@@ -256,6 +256,7 @@ export function BalanceList({
             </a>
           )}
         </div>
+      ) : (
         <div>
           {sorted.length > 0 && (
             <div>
@@ -293,6 +294,7 @@ export function BalanceList({
             </div>
           )}
         </div>
+      )}
     </div>
   );
 }
