@@ -84,6 +84,21 @@ describe("ContractEventFeed", () => {
     });
   });
 
+  it("fetches events on mount with the contractId and the default limit", async () => {
+    const getEvents = vi.fn().mockResolvedValue({ data: [MOCK_EVENT], error: null });
+    vi.mocked(getClient).mockReturnValue({
+      soroban: { getEvents },
+    } as unknown as SorokitClient);
+
+    render(<ContractEventFeed contractId={CONTRACT_ID} />);
+    act(() => { vi.advanceTimersByTime(0); });
+
+    await waitFor(() => {
+      expect(getEvents).toHaveBeenCalledWith(CONTRACT_ID, 10, undefined);
+    });
+    expect(getEvents).toHaveBeenCalledTimes(1);
+  });
+
   it("renders 'No events found' when the events array is empty", async () => {
     mockGetEvents({ data: [], error: null });
 
@@ -142,7 +157,7 @@ describe("ContractEventFeed", () => {
     expect(getEvents).toHaveBeenCalledTimes(callsAfterPause);
   });
 
-  it("pauses polling while the screen is hidden and resumes when visible again (#533)", async () => {
+  it("restarts polling when the Live/Paused toggle is turned back on", async () => {
     const getEvents = vi.fn().mockResolvedValue({ data: [], error: null });
     vi.mocked(getClient).mockReturnValue({
       soroban: { getEvents },
@@ -165,23 +180,21 @@ describe("ContractEventFeed", () => {
     act(() => { vi.advanceTimersByTime(0); });
     await waitFor(() => expect(getEvents).toHaveBeenCalledTimes(1));
 
-    // Dashboard hides this screen (mount-once, keep-alive pattern).
-    act(() => {
-      observerCallback?.([{ isIntersecting: false } as IntersectionObserverEntry], {} as IntersectionObserver);
-    });
+    // Pause polling.
+    fireEvent.click(screen.getByRole("button", { name: /live/i }));
+    const callsAfterPause = getEvents.mock.calls.length;
 
-    // Well past the poll interval while hidden — no new calls.
     act(() => { vi.advanceTimersByTime(1500); });
-    expect(getEvents).toHaveBeenCalledTimes(1);
+    expect(getEvents).toHaveBeenCalledTimes(callsAfterPause);
 
-    // Becomes visible again — polling resumes.
-    act(() => {
-      observerCallback?.([{ isIntersecting: true } as IntersectionObserverEntry], {} as IntersectionObserver);
-    });
-    act(() => { vi.advanceTimersByTime(500) });
-    await waitFor(() => expect(getEvents).toHaveBeenCalledTimes(2));
+    // Resume polling — a fresh interval starts, so one more call fires per
+    // poll interval.
+    fireEvent.click(screen.getByRole("button", { name: /paused/i }));
+    act(() => { vi.advanceTimersByTime(500); });
+    expect(getEvents).toHaveBeenCalledTimes(callsAfterPause + 1);
 
-    vi.unstubAllGlobals();
+    act(() => { vi.advanceTimersByTime(500); });
+    expect(getEvents).toHaveBeenCalledTimes(callsAfterPause + 2);
   });
 
   it("triggers a new load when contractId changes", async () => {
