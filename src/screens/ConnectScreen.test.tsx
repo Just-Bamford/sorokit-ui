@@ -1,7 +1,8 @@
-import { render, screen, fireEvent } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import { useSorokit } from "@/context/useSorokit";
+
 import { ConnectScreen } from "./ConnectScreen";
 
 vi.mock("@/context/useSorokit", () => ({
@@ -16,7 +17,7 @@ describe("ConnectScreen", () => {
       isConnecting: false,
       error: null,
       clearError: vi.fn(),
-    } as any);
+    } as unknown as ReturnType<typeof useSorokit>);
 
     render(<ConnectScreen />);
     const btn = screen.getByRole("button", { name: /Connect Wallet/i });

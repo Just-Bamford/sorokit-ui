@@ -221,13 +221,13 @@ describe("WalletConnectButton", () => {
       }).not.toThrow();
 
       // Dropdown with disconnect button appears
-      const disconnectBtn = screen.getByRole("button", { name: /disconnect/i });
+      const disconnectBtn = screen.getByRole("menuitem", { name: /disconnect/i });
       expect(disconnectBtn).toBeInTheDocument();
 
       // Clicking again closes the dropdown
       fireEvent.click(addressPill);
       expect(
-        screen.queryByRole("button", { name: /disconnect/i }),
+        screen.queryByRole("menuitem", { name: /disconnect/i }),
       ).not.toBeInTheDocument();
     });
   });
@@ -265,8 +265,8 @@ describe("WalletConnectButton", () => {
       fireEvent.click(screen.getByRole("button", { name: /wallet connected/i }));
       expect(screen.getByText("Disconnecting…")).toBeInTheDocument();
       expect(
-        screen.getByRole("button", { name: /disconnect/i }),
-      ).toBeDisabled();
+        screen.getByRole("menuitem", { name: /disconnect/i }),
+      ).toHaveAttribute("aria-disabled", "true");
     });
 
     it("clears the error banner after a successful connect clears the error", () => {
@@ -298,5 +298,23 @@ describe("WalletConnectButton", () => {
         screen.getByRole("button", { name: /wallet connected/i }),
       ).toBeInTheDocument();
     });
+  });
+
+  it("calls onOpenModal when connected address pill is clicked", () => {
+    const mockOnOpenModal = vi.fn();
+    const fullAddress = "GABC1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    vi.mocked(useSorokit).mockReturnValue(mockUseSorokit({
+      isConnected: true,
+      address: fullAddress,
+      connectWallet: mockConnect,
+      clearError: mockClearError,
+    }));
+
+    render(<WalletConnectButton onOpenModal={mockOnOpenModal} />);
+    const addressPill = screen.getByRole("button", {
+      name: `Wallet connected: ${fullAddress}. Click to manage.`,
+    });
+    fireEvent.click(addressPill);
+    expect(mockOnOpenModal).toHaveBeenCalledTimes(1);
   });
 });
