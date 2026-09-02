@@ -149,7 +149,12 @@ export function SorokitProvider({
 
   // Load account when address changes
   useEffect(() => {
-    if (!address) return;
+    setError(null);
+    if (!address) {
+      setAccount(null);
+      setBalances([]);
+      return;
+    }
 
     let active = true;
     const timerId = window.setTimeout(() => {
@@ -162,6 +167,10 @@ export function SorokitProvider({
           if (!active) return;
           if (accountRes.data) setAccount(accountRes.data);
           if (balancesRes.data) setBalances(balancesRes.data);
+          const combined = [accountRes.error, balancesRes.error]
+            .filter(Boolean)
+            .join("; ");
+          if (combined) setError(combined);
           if (accountRes.error && balancesRes.error) {
             reportError(
               `${accountRes.error}; ${balancesRes.error}`,
@@ -227,6 +236,12 @@ export function SorokitProvider({
   }, [reportError]);
 
   const disconnectWallet = useCallback(async () => {
+    await client.wallet.disconnect();
+    setAddress(null);
+    setAccount(null);
+    setBalances([]);
+    setError(null);
+  }, [client]);
     setIsDisconnecting(true);
     try {
       // A wallet adapter that throws (e.g. the extension went away
