@@ -1,3 +1,5 @@
+import React from "react";
+
 import { cn } from "@/lib/utils";
 
 export type SkeletonShape = "rounded" | "circle" | "square";
@@ -7,22 +9,33 @@ export interface SkeletonProps extends React.HTMLAttributes<HTMLDivElement> {
   circle?: boolean;
   /** Shape variant: rounded (default), circle, or square */
   shape?: SkeletonShape;
+  /**
+   * Animation variant.
+   * - "pulse"   — opacity pulsing via Tailwind's animate-pulse (default)
+   * - "shimmer" — a light sweep across the skeleton
+   */
+  variant?: "pulse" | "shimmer";
 }
 
-export function Skeleton({ circle, shape, className, ...props }: SkeletonProps) {
-  const roundedClass =
-    shape === "circle" || circle
-      ? "rounded-full"
-      : shape === "square"
-      ? "rounded-none"
-      : "rounded-lg";
-
+export function Skeleton({
+  circle,
+  shape = "rounded",
+  variant = "pulse",
+  className,
+  ...props
+}: SkeletonProps) {
+  const resolvedShape = circle ? "circle" : shape;
   return (
     <div
       role="presentation"
       className={cn(
-        "bg-surface-2 animate-pulse shrink-0",
-        roundedClass,
+        "bg-surface-2 shrink-0",
+        resolvedShape === "circle"
+          ? "rounded-full"
+          : resolvedShape === "square"
+            ? "rounded-none"
+            : "rounded-lg",
+        variant === "pulse" ? "animate-pulse" : "skeleton-shimmer",
         className,
       )}
       {...props}
@@ -95,21 +108,27 @@ export function AssetRowSkeleton({ className }: { className?: string }) {
 }
 
 export interface SkeletonCardProps extends React.HTMLAttributes<HTMLDivElement> {
-  /** Number of body rows to render */
+  /** Number of body rows to render (ignored if children/structure are provided) */
   rows?: number;
   /** Custom header slot; defaults to standard 2-line header skeleton */
   header?: React.ReactNode;
+  /** Replaces the entire default header + rows layout wholesale */
+  structure?: React.ReactNode;
+  children?: React.ReactNode;
 }
 
 /** Pre-composed card skeleton: header + body lines */
 export function SkeletonCard({
   rows = 3,
+  structure,
+  children,
   header,
   className,
   ...props
 }: SkeletonCardProps) {
   return (
     <div
+      role="status"
       aria-busy="true"
       className={cn(
         "rounded-xl border border-line bg-surface overflow-hidden",
@@ -117,19 +136,25 @@ export function SkeletonCard({
       )}
       {...props}
     >
-      {header !== undefined ? (
-        header
+      {structure || children ? (
+        structure || children
       ) : (
-        <div className="px-5 py-4 border-b border-line flex flex-col gap-2">
-          <Skeleton className="h-4 w-32" />
-          <Skeleton className="h-3 w-48" />
-        </div>
+        <>
+          <div className="px-5 py-4 border-b border-line flex flex-col gap-2">
+            {header ?? (
+              <>
+                <Skeleton className="h-4 w-32" />
+                <Skeleton className="h-3 w-48" />
+              </>
+            )}
+          </div>
+          <div className="px-5 py-5 flex flex-col gap-4">
+            {Array.from({ length: rows }).map((_, i) => (
+              <Skeleton key={`skeleton-row-${rows}-${i}`} className="h-4 w-full" />
+            ))}
+          </div>
+        </>
       )}
-      <div className="px-5 py-5 flex flex-col gap-4">
-        {Array.from({ length: rows }).map((_, i) => (
-          <Skeleton key={i} className="h-4 w-full" />
-        ))}
-      </div>
     </div>
   );
 }

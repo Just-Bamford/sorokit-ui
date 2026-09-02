@@ -1,7 +1,10 @@
-import { render, screen, fireEvent } from "@testing-library/react";
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { Sidebar } from "./Sidebar";
+import { fireEvent,render, screen } from "@testing-library/react";
+import { beforeEach,describe, expect, it, vi } from "vitest";
+
 import { useSorokit } from "@/context/useSorokit";
+
+import packageJson from "../../package.json";
+import { Sidebar } from "./Sidebar";
 
 vi.mock("@/context/useSorokit", () => ({
   useSorokit: vi.fn(),
@@ -44,20 +47,22 @@ describe("Sidebar", () => {
     expect(onNavigate).toHaveBeenCalledWith("network");
   });
 
-  it("applies active styles to the current nav item", () => {
+  it("applies active styles and aria-current='page' to the current nav item", () => {
     render(
       <Sidebar active="network" onNavigate={onNavigate} open={false} onClose={onClose} />,
     );
     const networkBtn = screen.getByRole("button", { name: /network/i });
     expect(networkBtn.className).toContain("bg-surface-3");
+    expect(networkBtn).toHaveAttribute("aria-current", "page");
   });
 
-  it("does not apply active styles to inactive nav items", () => {
+  it("does not apply active styles or aria-current to inactive nav items", () => {
     render(
       <Sidebar active="wallet" onNavigate={onNavigate} open={false} onClose={onClose} />,
     );
     const accountBtn = screen.getByRole("button", { name: /account/i });
     expect(accountBtn.className).not.toContain("bg-surface-3");
+    expect(accountBtn).not.toHaveAttribute("aria-current");
   });
 
   it("calls onClose when the mobile backdrop is clicked", () => {
@@ -100,6 +105,37 @@ describe("Sidebar", () => {
     );
     const navElement = screen.getByRole("navigation");
     expect(navElement).toHaveAttribute("aria-label", "Main navigation");
+  });
+
+  it("reads localStorage on mount and pre-selects the saved section", () => {
+    localStorage.setItem("sorokit-active-nav", "network");
+
+    render(
+      <Sidebar active="wallet" onNavigate={onNavigate} open={false} onClose={onClose} />,
+    );
+
+    expect(onNavigate).toHaveBeenCalledWith("network");
+    localStorage.removeItem("sorokit-active-nav");
+  });
+
+  it("does not call onNavigate when localStorage has no saved section", () => {
+    localStorage.removeItem("sorokit-active-nav");
+
+    render(
+      <Sidebar active="wallet" onNavigate={onNavigate} open={false} onClose={onClose} />,
+    );
+
+    expect(onNavigate).not.toHaveBeenCalled();
+  });
+
+  it("updates localStorage when navigating to a new section", () => {
+    render(
+      <Sidebar active="wallet" onNavigate={onNavigate} open={false} onClose={onClose} />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /account/i }));
+
+    expect(localStorage.getItem("sorokit-active-nav")).toBe("account");
   });
 
   it("traps focus and handles escape/restoration on mobile", () => {
@@ -146,5 +182,32 @@ describe("Sidebar", () => {
     // Clean up
     document.body.removeChild(trigger);
     vi.unstubAllGlobals();
+  });
+
+  describe("version footer (#351)", () => {
+    it("renders the version string from package.json in the footer", () => {
+      render(
+        <Sidebar active="wallet" onNavigate={onNavigate} open={false} onClose={onClose} />,
+      );
+      expect(screen.getByText(`v${packageJson.version}`)).toBeInTheDocument();
+    });
+  });
+
+  describe("logo click navigation (#351)", () => {
+    it("fires onNavigate('wallet') when the logo is clicked", () => {
+      render(
+        <Sidebar active="soroban" onNavigate={onNavigate} open={false} onClose={onClose} />,
+      );
+      fireEvent.click(screen.getByRole("button", { name: /sorokit/i }));
+      expect(onNavigate).toHaveBeenCalledWith("wallet");
+    });
+
+    it("fires onNavigate('wallet') from the logo even when already on the wallet screen", () => {
+      render(
+        <Sidebar active="wallet" onNavigate={onNavigate} open={false} onClose={onClose} />,
+      );
+      fireEvent.click(screen.getByRole("button", { name: /sorokit/i }));
+      expect(onNavigate).toHaveBeenCalledWith("wallet");
+    });
   });
 });

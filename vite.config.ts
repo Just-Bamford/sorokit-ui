@@ -1,19 +1,54 @@
-import { defineConfig } from "vitest/config";
-import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
+import react from "@vitejs/plugin-react";
 import path from "path";
+import { defineConfig } from "vite";
+import dts from "vite-plugin-dts";
 
-// https://vite.dev/config/
 export default defineConfig({
-  plugins: [react(), tailwindcss()],
+  plugins: [
+    react(),
+    tailwindcss(),
+    dts({
+      tsconfigPath: path.resolve(__dirname, "tsconfig.lib.json"),
+    }),
+  ],
+  build: {
+    lib: {
+      entry: path.resolve(__dirname, "src/index.ts"),
+      name: "SorokitUI",
+      fileName: (format) => `index.${format === "es" ? "js" : "cjs"}`,
+      formats: ["es", "cjs"],
+    },
+    rollupOptions: {
+      external: (id) =>
+        !id.startsWith(".") &&
+        !id.startsWith("@/") &&
+        !id.startsWith("\0") &&
+        !path.isAbsolute(id),
+      output: {
+        assetFileNames: (assetInfo) => {
+          if (assetInfo.name?.endsWith(".css")) {
+            return "style.css";
+          }
+          return "[name][extname]";
+        },
+        globals: {
+          react: "React",
+          "react-dom": "ReactDOM",
+        },
+      },
+    },
+    minify: false,
+    sourcemap: true,
+    outDir: "dist",
+    emptyOutDir: true,
+  },
+  optimizeDeps: {
+    include: ["sorokit-core", "@creit.tech/stellar-wallets-kit"],
+  },
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
   },
-  test: {
-    globals: true,
-    environment: "jsdom",
-    setupFiles: ["./src/setupTests.ts"],
-  },
-} as any);
+});

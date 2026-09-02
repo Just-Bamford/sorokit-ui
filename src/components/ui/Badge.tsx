@@ -11,6 +11,7 @@ type BadgeVariant =
 
 interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
   variant?: BadgeVariant;
+  size?: "sm" | "md";
   dot?: boolean;
   live?: boolean;
 }
@@ -39,22 +40,57 @@ const dots: Record<BadgeVariant, string> = {
   purple: "bg-purple",
 };
 
+const sizes: Record<string, string> = {
+  sm: "px-1.5 py-0.5 text-[10px]",
+  md: "px-2 py-1 text-[11px]",
+};
+
 export function Badge({
   variant = "default",
+  size = "md",
   dot,
   live,
   className,
   children,
   ...props
 }: BadgeProps) {
+  const liveProps = live
+    ? ({ role: "status", "aria-live": "polite" } as const)
+    : {};
+
+  const hasChildren =
+    children !== undefined &&
+    children !== null &&
+    children !== false &&
+    children !== "";
+
+  // A dot with no label has nothing to give the pill width, so the padded
+  // container collapses to a sliver and reads as broken. Drop the pill chrome
+  // and let the dot stand on its own.
+  if (dot && !hasChildren) {
+    return (
+      <span
+        className={cn("inline-flex items-center justify-center", className)}
+        {...liveProps}
+        {...props}
+      >
+        <span
+          aria-hidden="true"
+          className={cn("w-1 h-1 rounded-full shrink-0", dots[variant])}
+        />
+      </span>
+    );
+  }
+
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11px] font-semibold tracking-wide",
+        "inline-flex items-center gap-1 rounded-full font-semibold tracking-wide",
+        sizes[size],
         variants[variant],
         className,
       )}
-      {...(live ? { role: "status", "aria-live": "polite" } : {})}
+      {...liveProps}
       {...props}
     >
       {dot && (

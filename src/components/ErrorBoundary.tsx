@@ -1,40 +1,94 @@
-import { Component, type ErrorInfo, type ReactNode } from "react";
-import { HugeiconsIcon } from "@hugeicons/react";
 import { AlertCircleIcon, Refresh01Icon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { Component, type ErrorInfo, type ReactNode } from "react";
+
+import { cn } from "../lib/utils";
 
 interface Props {
   children: ReactNode;
   /** Custom fallback UI. Receives the error and a reset callback. */
   fallback?: (error: Error, reset: () => void) => ReactNode;
+  /** Called when the boundary catches an error. */
+  onError?: (error: Error, info: ErrorInfo) => void;
+  /**
+   * Called when the user retries, before the boundary clears its error state.
+   * Use it to re-attempt the work that failed — e.g. re-initialising the
+   * Sorokit client after `createSorokitClient()` threw — so the retried render
+   * has a working dependency instead of throwing again immediately.
+   */
+  onRetry?: () => void;
+  /** Render fallback content as an in-page scoped panel instead of a full-page state. */
+  isolate?: boolean;
+  /** Optional support URL shown in the default fallback. */
+  supportUrl?: string;
 }
 
 interface State {
   error: Error | null;
+  resetKey: number;
+  componentStack: string | null;
 }
 
 export class ErrorBoundary extends Component<Props, State> {
-  state: State = { error: null };
+  state: State = { error: null, resetKey: 0, componentStack: null };
 
-  static getDerivedStateFromError(error: Error): State {
+  static getDerivedStateFromError(error: Error): Partial<State> {
     return { error };
   }
 
   componentDidCatch(error: Error, info: ErrorInfo) {
-    console.error("[sorokit-ui] Uncaught error:", error, info.componentStack);
+    this.setState({ error, componentStack: info.componentStack ?? null });
+
+    if (this.props.onError) {
+      this.props.onError(error, info);
+      return;
+    }
+
+    if (import.meta.env.DEV) {
+      console.error("[sorokit-ui] Uncaught error:", error, info.componentStack);
+    }
   }
 
-  reset = () => this.setState({ error: null });
+  reset = () => {
+    // Runs before the state clears so a re-initialisation attempt is already
+    // done by the time children re-mount under the new resetKey.
+    this.props.onRetry?.();
+    this.setState((state) => ({
+      error: null,
+      resetKey: state.resetKey + 1,
+      componentStack: null,
+    }));
+  };
 
   render() {
-    const { error } = this.state;
-    if (!error) return this.props.children;
+    const { error, resetKey, componentStack } = this.state;
+    const { children, fallback, isolate, supportUrl } = this.props;
 
-    if (this.props.fallback) {
-      return this.props.fallback(error, this.reset);
+    if (!error) return <div key={resetKey}>{children}</div>;
+
+    if (fallback) {
+      const fallbackNode = fallback(error, this.reset);
+
+      return isolate ? (
+        <div
+          className="overflow-hidden rounded-xl border border-line bg-surface"
+        >
+          {fallbackNode}
+        </div>
+      ) : (
+        fallbackNode
+      );
     }
 
     return (
-      <div className="min-h-screen flex items-center justify-center bg-base px-4">
+      <div
+        className={cn(
+          "flex items-center justify-center bg-base px-4",
+          isolate
+            ? "min-h-[260px] overflow-hidden rounded-xl border border-line bg-surface py-8"
+            : "min-h-screen"
+        )}
+      >
         <div className="w-full max-w-[400px] flex flex-col items-center gap-6 text-center">
           <div className="w-14 h-14 rounded-2xl bg-error-dim border border-error-dim-strong flex items-center justify-center">
             <HugeiconsIcon
@@ -61,9 +115,29 @@ export class ErrorBoundary extends Component<Props, State> {
             <p className="text-[12px] font-mono text-red break-all">
               {import.meta.env.DEV
                 ? error.message
-                : "See the browser console for details."}
+                : "Details are hidden in production."}
             </p>
           </div>
+          {supportUrl && (
+            <a
+              href={supportUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[12px] text-brand hover:underline"
+            >
+              Report this issue
+            </a>
+          )}
+          {import.meta.env.DEV && componentStack && (
+            <details className="w-full rounded-xl border border-line bg-surface-2 px-4 py-3 text-left">
+              <summary className="cursor-pointer text-[11px] font-medium text-ink-3">
+                Show component stack
+              </summary>
+              <pre className="mt-2 whitespace-pre-wrap break-all text-[11px] text-ink-3">
+                {componentStack}
+              </pre>
+            </details>
+          )}
           <div className="flex items-center gap-3">
             <button
               onClick={this.reset}

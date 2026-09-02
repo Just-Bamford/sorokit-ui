@@ -3,11 +3,40 @@
 @import "tailwindcss";
 
 /* ─────────────────────────────────────────────────────────
-   BRAND & DESIGN TOKENS
+   Design Token Reference
+   Design Token Reference & Usage Context
+   
    Edit values here — they propagate to every component.
    Components reference these as: bg-brand, text-ink, border-line, etc.
-───────────────────────────────────────────────────────── */
+
+   | Token | Default Value | Intended Usage Context |
+   | :--- | :--- | :--- |
+   | `--color-brand` | `#55852b` | Primary brand/action color for buttons, active tabs, primary highlights |
+   | `--color-brand-hover` | `#426625` | Hover and active pressed states for primary brand buttons |
+   | `--color-brand-dim` | `#17260d` | Subtle background tint for brand highlighted elements |
+   | `--color-base` | `#0d0d0d` | Main application page background |
+   | `--color-surface` | `#141414` | Primary container surfaces: cards, sidebars, topbar header |
+   | `--color-surface-2` | `#1c1c1c` | Secondary surfaces: input backgrounds, button hover states, tooltips, dropdowns |
+   | `--color-surface-3` | `#1e1e1e` | Tertiary surfaces: active navigation items, subtle card sub-sections |
+   | `--color-line` | `#2a2a2a` | Default border for cards, inputs, and layout dividers |
+   | `--color-line-2` | `#333333` | Stronger border variant for hover states, focus states, scrollbars, active outlines |
+   | `--color-ink` | `#ebebeb` | Primary high-contrast text and primary icons |
+   | `--color-ink-2` | `#999999` | Secondary text for labels, descriptions, and address monospace text |
+   | `--color-ink-3` | `#555555` | Muted text for subtle hints, disabled states, and metadata |
+   | `--color-ink-4` | `#3a3a3a` | Very muted text for section headers, inactive indicators, and subtle dividers |
+   | `--color-green` | `#22c55e` | Success status accent, positive balance changes |
+   | `--color-orange` | `#f97316` | Warning status accent, pending transactions |
+   | `--color-red` | `#ef4444` | Error status accent, negative alerts, destructive actions |
+   | `--color-teal` | `#14b8a6` | Info accent, contract event indicators |
+   | `--color-purple` | `#a855f7` | Special status accent, governance badges |
+   | `--color-success-bg` | `rgba(34, 197, 94, 0.1)` | Tinted success banner/card background |
+   | `--color-error-bg` | `rgba(239, 68, 68, 0.1)` | Tinted error banner/card background |
+   | `--color-qr-canvas-bg` | `#ffffff` | Fixed light background for QR code canvas contrast |
+   | `--color-qr-canvas-fg` | `#0d0d0d` | Fixed dark foreground for QR code canvas contrast |
+ ───────────────────────────────────────────────────────── */
 :root {
+  color-scheme: dark;
+
   /* ── Brand ── */
   --color-brand: #55852b; /* — change this to rebrand */
   --color-brand-hover: #426625; /* brand hover/pressed state */
@@ -56,6 +85,62 @@
   /* ── QR canvas (override for light/dark themes) ── */
   --color-qr-canvas-bg: #ffffff;
   --color-qr-canvas-fg: #0d0d0d;
+
+  /* ── Layout ── */
+  --sorokit-nav-height: 60px; /* top bar / sidebar header height */
+}
+
+/* ─────────────────────────────────────────────────────────
+   LIGHT THEME
+   Opt in by setting data-theme="light" on <html> (or any ancestor).
+   Overrides only the core surface/text/border tokens — semantic and
+   state colors stay the same across both themes.
+───────────────────────────────────────────────────────── */
+html[data-theme="light"] {
+  --color-brand: #3f6620;
+  --color-brand-hover: #345415;
+  --color-brand-dim: #eaf3e2;
+
+  --color-base: #ffffff;
+  --color-surface: #f7f7f7;
+  --color-surface-2: #eeeeee;
+  --color-surface-3: #e4e4e4;
+
+  --color-line: #e2e2e2;
+  --color-line-2: #cfcfcf;
+
+  --color-ink: #16181b;
+  --color-ink-2: #4b4b52;
+  --color-ink-3: #6b6b72;
+  --color-ink-4: #8a8a90;
+
+  --color-qr-canvas-bg: #ffffff;
+  --color-qr-canvas-fg: #16181b;
+}
+
+html[data-theme="light"] {
+  color-scheme: light;
+}
+
+/* ─────────────────────────────────────────────────────────
+   ANIMATIONS
+───────────────────────────────────────────────────────── */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+@keyframes highlight-flash {
+  0% {
+    background-color: var(--color-success-bg-strong);
+  }
+  100% {
+    background-color: transparent;
+  }
 }
 
 /* ─────────────────────────────────────────────────────────
@@ -63,6 +148,19 @@
    Define utility classes that use our custom CSS properties.
 ───────────────────────────────────────────────────────── */
 @layer utilities {
+  .animate-shimmer {
+    background: linear-gradient(
+      90deg,
+      var(--color-surface-2) 0%,
+      rgba(255, 255, 255, 0.1) 50%,
+      var(--color-surface-2) 100%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 2s infinite;
+  }
+  .animate-highlight {
+    animation: highlight-flash 1.5s ease-out;
+  }
   .bg-brand {
     background-color: var(--color-brand);
   }
@@ -161,6 +259,31 @@
   }
   .hover\:bg-error-dim-hover:hover {
     background-color: var(--color-error-bg-hover);
+  }
+}
+
+/* ─────────────────────────────────────────────────────────
+   SKELETON SHIMMER ANIMATION
+───────────────────────────────────────────────────────── */
+@keyframes shimmer {
+  0% {
+    background-position: -200% center;
+  }
+  100% {
+    background-position: 200% center;
+  }
+}
+
+@layer utilities {
+  .skeleton-shimmer {
+    background: linear-gradient(
+      90deg,
+      var(--color-surface-2) 25%,
+      var(--color-surface-3) 50%,
+      var(--color-surface-2) 75%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.6s ease-in-out infinite;
   }
 }
 

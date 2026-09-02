@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from "react";
 import QRCodeLib from "qrcode";
+import { useEffect, useRef, useState } from "react";
+
 import { cn } from "@/lib/utils";
 
 function readCssColor(variable: string, fallback: string): string {
@@ -8,13 +9,19 @@ function readCssColor(variable: string, fallback: string): string {
     .getPropertyValue(variable)
     .trim();
   return value || fallback;
-}
+}  
 
 interface QRCodeProps {
   value: string;
   size?: number;
   className?: string;
   label?: string;
+  /**
+   * Accessible name for the QR code, announced by screen readers. A `<canvas>`
+   * is opaque to assistive tech, so without this the code is invisible to AT.
+   * Defaults to the `label` if provided, otherwise a generic description.
+   */
+  ariaLabel?: string;
   /** Canvas background colour. Defaults to `--color-qr-canvas-bg`. */
   canvasBackground?: string;
   /** Canvas foreground (cell) colour. Defaults to `--color-qr-canvas-fg`. */
@@ -30,12 +37,23 @@ export function QRCode({
   size = 160,
   className,
   label,
+  ariaLabel,
   canvasBackground,
   canvasForeground,
 }: QRCodeProps) {
+  if (size <= 0) {
+    console.warn("QRCode size must be greater than 0, got", size);
+  }
+
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [renderError, setRenderError] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [prevProps, setPrevProps] = useState({ value, size, canvasBackground, canvasForeground });
+
+  // A zero or negative size gives the canvas invalid dimensions and renders as
+  // a broken box. Derived rather than stored so the spinner doesn't sit
+  // running while waiting on a draw that will never be attempted.
+  const hasInvalidSize = !size || size <= 0;
 
   if (
     prevProps.value !== value ||
@@ -45,10 +63,15 @@ export function QRCode({
   ) {
     setPrevProps({ value, size, canvasBackground, canvasForeground });
     setRenderError(false);
+    setIsLoading(true);
   }
-
   useEffect(() => {
     if (renderError || !value) return;
+
+    if (hasInvalidSize) {
+      console.warn("[QRCode] size must be > 0");
+      return;
+    }
 
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -84,16 +107,17 @@ export function QRCode({
           console.error("Failed to render QR Code:", error);
           setRenderError(true);
         }
+        if (active) setIsLoading(false);
       }
     );
 
     return () => {
       active = false;
     };
-  }, [value, size, canvasBackground, canvasForeground, renderError]);
+  }, [value, size, canvasBackground, canvasForeground, renderError, hasInvalidSize]);
 
   return (
-    <div className={cn("flex flex-col items-center gap-3", className)}>
+    <figure className={cn("flex flex-col items-center gap-3", className)}>
       <div
         className="rounded-xl border border-line p-3 bg-[var(--color-qr-canvas-bg)] shadow-[0_4px_16px_rgba(0,0,0,0.3)] flex items-center justify-center"
         style={{ width: size + 24, height: size + 24 }}
@@ -111,19 +135,29 @@ export function QRCode({
             </span>
           </div>
         ) : (
-          <canvas
-            ref={canvasRef}
-            role="img"
-            aria-label={`QR code for address ${value}`}
-            style={{ display: "block", borderRadius: "4px" }}
-          />
+          <>
+            {isLoading && !hasInvalidSize && (
+              <div
+                className="flex items-center justify-center"
+                style={{ width: size, height: size }}
+              >
+                <span className="w-6 h-6 border-2 border-ink-3 border-t-transparent rounded-full animate-spin" />
+              </div>
+            )}
+            <canvas
+              ref={canvasRef}
+              role="img"
+              aria-label={ariaLabel ?? label ?? `QR code for address ${value}`}
+              style={{ display: isLoading ? "none" : "block", borderRadius: "4px" }}
+            />
+          </>
         )}
       </div>
       {label && (
-        <p className="text-[11px] text-ink-3 text-center max-w-[200px] break-all font-mono">
+        <figcaption className="text-[11px] text-ink-3 text-center max-w-[200px] break-all font-mono">
           {label}
-        </p>
+        </figcaption>
       )}
-    </div>
+    </figure>
   );
 }

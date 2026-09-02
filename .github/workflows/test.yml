@@ -26,11 +26,48 @@ jobs:
       - name: Run linter
         run: npm run lint
 
+      - name: Typecheck
+        run: npm run typecheck
+
       - name: Build
         run: npm run build
+
+      - name: Check bundle size
+        run: npm run size
 
       - name: Verify Exports
         run: npm run test:exports
 
       - name: Run tests
         run: npm test
+
+      # Accessibility audit runs once (not per Node version matrix entry)
+      # to avoid redundant browser automation.
+      - name: Install matching chromedriver
+        if: matrix.node-version == '22.x'
+        run: npx browser-driver-manager install chrome
+
+      - name: Start demo app
+        if: matrix.node-version == '22.x'
+        run: |
+          npx vite --port 4173 --strictPort &
+          for i in $(seq 1 30); do
+            curl -sf http://localhost:4173/ > /dev/null && break
+            sleep 1
+          done
+
+      - name: Run accessibility audit (axe)
+        if: matrix.node-version == '22.x'
+        run: |
+          npx axe http://localhost:4173 \
+            --save axe-results.json \
+            --chrome-options="headless=new,no-sandbox,disable-dev-shm-usage" \
+            || true
+          node scripts/check-axe-critical.mjs axe-results.json
+
+      - name: Upload axe results
+        if: always() && matrix.node-version == '22.x'
+        uses: actions/upload-artifact@v4
+        with:
+          name: axe-results
+          path: axe-results.json

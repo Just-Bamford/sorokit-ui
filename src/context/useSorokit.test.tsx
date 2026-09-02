@@ -1,17 +1,19 @@
 import { renderHook, screen } from "@testing-library/react";
-import { describe, it, expect } from "vitest";
-import { useSorokit } from "./useSorokit";
+import { describe, expect,it } from "vitest";
+
 import { renderWithProvider } from "@/__tests__/utils";
 
-// Note: we just need to ensure it throws without the provider.
+import { useSorokit } from "./useSorokit";
+
 describe("useSorokit", () => {
-  it("throws an error when used outside of SorokitProvider", () => {
-    // Suppress console.error for expected thrown error
-    const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
-    
-    expect(() => renderHook(() => useSorokit())).toThrow(
-      "[sorokit-ui] useSorokit must be used inside <SorokitProvider>"
-    );
+  it("returns safe defaults when used outside of SorokitProvider", () => {
+    const consoleSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    const { result } = renderHook(() => useSorokit());
+    expect(result.current.isConnected).toBe(false);
+    expect(result.current.address).toBeNull();
+    expect(result.current.balances).toEqual([]);
+    expect(result.current.error).toBeNull();
 
     consoleSpy.mockRestore();
   });

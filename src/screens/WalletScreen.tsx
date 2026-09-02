@@ -1,16 +1,59 @@
-import { useState, useEffect, useRef } from "react";
-import { useSorokit } from "@/context/useSorokit";
-import { Button } from "@/components/ui/Button";
-import { Badge } from "@/components/ui/Badge";
-import { cn, truncateAddress } from "@/lib/utils";
-import { HugeiconsIcon } from "@hugeicons/react";
-import { Copy01Icon, Tick01Icon } from "@hugeicons/core-free-icons";
-import { QRCode } from "@/components/QRCode";
+import * as Dialog from "@radix-ui/react-dialog";
+import { useEffect, useRef, useState } from "react";
+
 import { AddressDisplay } from "@/components/AddressDisplay";
+import { QRCode } from "@/components/QRCode";
+import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
+import { InfoCell } from "@/components/ui/InfoCell";
+import { useSorokit } from "@/context/useSorokit";
+
+/**
+ * Full-screen QR code for scanning. Built on Radix Dialog so it traps focus,
+ * closes on Escape or an overlay click, and is labelled for screen readers --
+ * on a narrow screen the inline QR code can be clipped or too small to scan.
+ */
+function QRModal({
+  open,
+  onOpenChange,
+  address,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  address: string;
+}) {
+  return (
+    <Dialog.Root open={open} onOpenChange={onOpenChange}>
+      <Dialog.Portal>
+        <Dialog.Overlay className="fixed inset-0 z-50 bg-black/60" />
+        <Dialog.Content className="fixed top-1/2 left-1/2 z-50 w-[calc(100%-2rem)] max-w-xs -translate-x-1/2 -translate-y-1/2 rounded-xl border border-line bg-surface p-6 flex flex-col items-center gap-4 focus:outline-none">
+          <Dialog.Title className="text-[15px] font-semibold text-ink">
+            Receive Funds
+          </Dialog.Title>
+          <Dialog.Description className="sr-only">
+            Full-size QR code for your wallet address. Scan it to send funds to
+            this account.
+          </Dialog.Description>
+          <QRCode value={address} size={240} ariaLabel="Full-size QR code" />
+          <p className="text-[11px] text-ink-3 break-all text-center font-mono">
+            {address}
+          </p>
+          <Dialog.Close asChild>
+            <Button variant="secondary" size="sm">
+              Close
+            </Button>
+          </Dialog.Close>
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
+  );
+}
 
 export function WalletScreen() {
-  const { address, isConnected, disconnectWallet, network } = useSorokit();
+  const { address, isConnected, disconnectWallet, network, account } = useSorokit();
   const [isConfirming, setIsConfirming] = useState(false);
+  const [toastVisible, setToastVisible] = useState(false);
+  const [qrModalOpen, setQrModalOpen] = useState(false);
   const timeoutRef = useRef<number | null>(null);
 
   const handleDisconnect = () => {
@@ -40,6 +83,22 @@ export function WalletScreen() {
     };
   }, []);
 
+  useEffect(() => {
+    if (!toastVisible) return;
+    const id = window.setTimeout(() => setToastVisible(false), 3000);
+    return () => window.clearTimeout(id);
+  }, [toastVisible]);
+
+  // createdAt is inferred rather than authoritative, so an unparseable value is
+  // dropped instead of rendering "NaN".
+  const createdAtDate = account?.createdAt
+    ? new Date(account.createdAt)
+    : null;
+  const activeSinceYear =
+    createdAtDate && !Number.isNaN(createdAtDate.getTime())
+      ? createdAtDate.getFullYear().toString()
+      : null;
+
   return (
     <div className="flex flex-col gap-6">
       <div className="rounded-xl border border-line bg-surface overflow-hidden">
@@ -59,7 +118,7 @@ export function WalletScreen() {
                 </Badge>
               </div>
               {address && (
-                <span data-address>{truncateAddress(address, 14, 6)}</span>
+                <AddressDisplay address={address} />
               )}
             </div>
           </div>
@@ -81,6 +140,16 @@ export function WalletScreen() {
             <InfoCell label="RPC Endpoint" value={network.rpcUrl} mono copyable />
           </div>
         )}
+        {account?.homeDomain && (
+          <div className="border-t border-line">
+            <InfoCell label="Home Domain" value={account.homeDomain} />
+          </div>
+        )}
+        {activeSinceYear && (
+          <div className="border-t border-line">
+            <InfoCell label="Active Since" value={activeSinceYear} />
+          </div>
+        )}
       </div>
 
       {isConnected && address && (
@@ -92,73 +161,50 @@ export function WalletScreen() {
             </p>
           </div>
           <div className="px-6 py-6 flex flex-col sm:flex-row items-center sm:items-start gap-6">
-            <QRCode value={address} size={140} className="shrink-0" />
+            <div className="flex flex-col items-center gap-2">
+              <QRCode
+                value={address}
+                size={140}
+                className="shrink-0"
+                ariaLabel={`QR code to receive funds at address ${address}`}
+              />
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => setQrModalOpen(true)}
+              >
+                Show QR
+              </Button>
+            </div>
             <div className="flex-1 min-w-0 w-full flex flex-col justify-center gap-1 sm:h-[164px]">
-              <AddressDisplay address={address} showFull label="Address" />
+              <AddressDisplay
+                address={address}
+                showFull
+                label="Address"
+                onCopy={() => setToastVisible(true)}
+              />
             </div>
           </div>
         </div>
       )}
-    </div>
-  );
-}
 
-function InfoCell({
-  label,
-  value,
-  mono,
-  copyable,
-}: {
-  label: string;
-  value: string;
-  mono?: boolean;
-  copyable?: boolean;
-}) {
-  const [copied, setCopied] = useState(false);
-
-  async function copy() {
-    try {
-      await navigator.clipboard.writeText(value);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      /* fallback */
-    }
-  }
-
-  return (
-    <div className="px-6 py-4 flex flex-col gap-1.5">
-      <span className="text-[10px] font-semibold uppercase tracking-[0.1em] text-ink-4">
-        {label}
-      </span>
-      <div className="flex items-center gap-2 group">
-        <span
-          title={value}
-          className={`text-[13px] text-ink-2 break-all ${mono ? "font-mono text-[12px]" : ""}`}
+      {toastVisible && (
+        <div
+          role="status"
+          className="fixed bottom-6 right-6 z-50 bg-surface border border-line rounded-md px-4 py-3 shadow-lg animate-in fade-in slide-in-from-bottom-2"
         >
-          {value}
-        </span>
-        {copyable && (
-          <button
-            onClick={copy}
-            aria-label={copied ? "Copied" : "Copy value"}
-            className={cn(
-              "shrink-0 p-1 rounded-md transition-all",
-              copied
-                ? "text-green bg-success-dim"
-                : "text-ink-3 hover:text-ink-2 hover:bg-surface-2 opacity-50 hover:opacity-100",
-            )}
-            title={copied ? "Copied!" : "Copy value"}
-          >
-            <HugeiconsIcon
-              icon={copied ? Tick01Icon : Copy01Icon}
-              size={12}
-              color="currentColor"
-              strokeWidth={2}
-            />
-          </button>
-        )}
-      </div>
+          <p className="text-[13px] font-semibold text-ink">Address Copied</p>
+          <p className="text-[12px] text-ink-3">
+            The address has been copied to your clipboard.
+          </p>
+        </div>
+      )}
+
+      <QRModal
+        open={qrModalOpen}
+        onOpenChange={setQrModalOpen}
+        address={address || ""}
+      />
     </div>
   );
 }

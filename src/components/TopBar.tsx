@@ -1,19 +1,22 @@
-import { WalletConnectButton } from "@/components/WalletConnectButton";
-import { NetworkSwitcher } from "@/components/NetworkSwitcher";
-import { useSorokit } from "@/context/useSorokit";
+import { Cancel01Icon,Menu01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { Menu01Icon, Cancel01Icon } from "@hugeicons/core-free-icons";
-import { SCREEN_LABELS } from "@/lib/nav-labels";
+
+import { NetworkSwitcher } from "@/components/NetworkSwitcher";
 import type { NavSection } from "@/components/Sidebar";
+import { WalletConnectButton } from "@/components/WalletConnectButton";
+import { useSorokit } from "@/context/useSorokit";
+import { SCREEN_LABELS } from "@/lib/nav-labels";
 
 const LABELS = SCREEN_LABELS;
 
 export function TopBar({
   active,
   onMenuToggle,
+  sidebarOpen,
 }: {
   active: NavSection;
   onMenuToggle: () => void;
+  sidebarOpen?: boolean;
 }) {
   const { error, clearError } = useSorokit();
   const { title, sub } = LABELS[active];
@@ -21,10 +24,11 @@ export function TopBar({
   return (
     <div className="shrink-0">
       {error && (
-        <div className="flex items-center justify-between gap-4 px-6 py-2.5 bg-error-dim-muted border-b border-error-dim">
-          <p className="text-[12px] text-red">{error}</p>
+        <div className="flex items-center justify-between gap-4 px-6 py-2.5 bg-error-dim-muted border-b border-error-dim shrink-0">
+          <p className="text-[12px] text-red break-words min-w-0 flex-1">{error}</p>
           <button
             onClick={clearError}
+            aria-label="Dismiss error"
             className="text-red opacity-50 hover:opacity-100 shrink-0 transition-opacity"
           >
             <HugeiconsIcon
@@ -36,12 +40,14 @@ export function TopBar({
           </button>
         </div>
       )}
-      <header className="flex items-center justify-between px-4 sm:px-6 h-[60px] border-b border-line bg-surface shrink-0">
+      <header className="flex items-center justify-between px-4 sm:px-6 h-auto min-h-[60px] border-b border-line bg-surface shrink-0">
         <div className="flex items-center gap-3">
           <button
             onClick={onMenuToggle}
             className="lg:hidden flex items-center justify-center w-8 h-8 rounded-md hover:bg-surface-2 transition-colors text-ink-2"
-            aria-label="Open menu"
+            aria-label={sidebarOpen ? "Close menu" : "Open menu"}
+            title={sidebarOpen ? "Close menu" : "Open menu"}
+            aria-expanded={sidebarOpen}
           >
             <HugeiconsIcon
               icon={Menu01Icon}

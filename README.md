@@ -13,6 +13,9 @@
   <a href="https://github.com/Just-Bamford/sorokit-ui/blob/main/LICENSE">
     <img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License: MIT" />
   </a>
+  <a href="https://github.com/Just-Bamford/sorokit-ui/blob/main/CHANGELOG.md">
+    <img src="https://img.shields.io/badge/changelog-1.0.0-9c27b0.svg" alt="Changelog" />
+  </a>
   <img src="https://img.shields.io/badge/react-%5E18.0-61dafb" alt="React 18" />
   <img src="https://img.shields.io/badge/typescript-%5E5.0-3178c6" alt="TypeScript" />
   <img src="https://img.shields.io/badge/stellar-mainnet%20%7C%20testnet%20%7C%20futurenet-6f42c1" alt="Stellar Networks" />
@@ -102,63 +105,166 @@ import { SorokitProvider } from "sorokit-ui";
 
 ## Components
 
-### Wallet
+The package ships a broad set of reusable UI building blocks for wallets, accounts, transactions, Soroban flows, and shared layout primitives.
 
-```tsx
-// Connect / disconnect button with wallet picker
-<ConnectWalletButton />
+| Category              | Component                   | Purpose                                                            |
+| --------------------- | --------------------------- | ------------------------------------------------------------------ |
+| **Wallet**            | WalletConnectButton         | Connect or disconnect a Stellar wallet with a ready-to-use button. |
+|                       | AddressDisplay              | Render and format a wallet or account address.                     |
+|                       | WalletConnectModal          | Modal for wallet connection with multiple adapter support.         |
+|                       | WalletStatusBadge           | Display current wallet connection status indicator.                |
+| **Account**           | AccountCard                 | Display account summary information in a compact card.             |
+|                       | AccountBalanceChart         | Visual chart of account balance history.                           |
+|                       | AccountSidebar              | Account information sidebar with quick stats.                      |
+|                       | BalanceList                 | Present the connected account's balances in a list.                |
+|                       | AssetBadge                  | Show an asset code and related badge styling.                      |
+|                       | AssetFilter                 | Filter and search assets by code or issuer.                        |
+|                       | ClaimableBalanceCard        | Display claimable balance details in a card.                       |
+| **Transactions**      | TransactionHistory          | Show recent account transactions.                                  |
+|                       | TransactionHistoryTable     | Enhanced table view of transaction history with filters.           |
+|                       | TransactionPanel            | Manage transaction submission and status details.                  |
+|                       | TransactionStatusTracker    | Real-time transaction status monitoring.                           |
+|                       | TransactionFeeCalculator    | Calculate and display transaction fees.                            |
+|                       | TransactionConfirmModal     | Confirmation dialog for transaction submission.                    |
+|                       | FeeEstimator                | Estimate fees for a proposed transaction.                          |
+|                       | BatchPaymentProcessor       | Process and manage batch payments.                                 |
+|                       | MultiSigTransactionBuilder  | Build multi-signature transactions.                                |
+|                       | QRCode                      | Render a QR code for addresses or payment requests.                |
+| **Soroban**           | SorobanPanel                | Provide a full Soroban contract interaction experience.            |
+|                       | SorobanInvokeButton         | Trigger a contract invocation from a button.                       |
+|                       | ContractEventFeed           | Stream and display contract events.                                |
+|                       | ContractInteractionBuilder  | Visual builder for contract interactions.                          |
+|                       | ContractInteractionDebugger | Debug contract calls with detailed output.                         |
+| **DeFi**              | SwapSimulator               | Simulate and preview swap trades.                                  |
+|                       | SwapExecutionTracker        | Track swap execution and status.                                   |
+|                       | SwapRoute                   | Visualize swap routes and paths.                                   |
+|                       | PortfolioRebalancer         | Portfolio rebalancing UI with recommendations.                     |
+|                       | RebalancerHistory           | View rebalancing history and performance.                          |
+|                       | GasOptimizer                | Optimize transaction gas usage.                                    |
+|                       | AllowanceManager            | Manage and approve token allowances.                               |
+| **Staking & Rewards** | StakingDashboard            | Comprehensive staking overview and management.                     |
+|                       | RewardsPanel                | Display rewards and earnings.                                      |
+|                       | RewardHistory               | Historical rewards tracking and analytics.                         |
+|                       | DelegationRow               | Manage individual delegations.                                     |
+| **Governance**        | GovernanceDashboard         | Voting and governance interface.                                   |
+| **Validators**        | ValidatorCard               | Display validator information and metrics.                         |
+|                       | ValidatorSearch             | Search and discover validators.                                    |
+| **NFT**               | NFTGallery                  | Display and browse NFT collections.                                |
+| **Network**           | NetworkBanner               | Display the active network context.                                |
+|                       | NetworkSwitcher             | Let users switch between Stellar networks.                         |
+| **Layout**            | Sidebar                     | Render app navigation in a sidebar shell.                          |
+|                       | TopBar                      | Render a top navigation bar.                                       |
+| **Screens**           | Dashboard                   | Main dashboard screen.                                             |
+|                       | BudgetScreen                | Budget management interface.                                       |
+|                       | ChartingScreen              | Charts and analytics dashboard.                                    |
+|                       | RecoveryScreen              | Account recovery and restoration UI.                               |
+|                       | YieldFarmingScreen          | Yield farming opportunities and management.                        |
+|                       | NFTScreen                   | Complete NFT management interface.                                 |
+| **UI Primitives**     | Badge                       | Small status or label badge primitive.                             |
+|                       | Button                      | Flexible button primitive.                                         |
+|                       | Card                        | Surface container primitive.                                       |
+|                       | Input                       | Text input primitive.                                              |
+|                       | Separator                   | Horizontal divider primitive.                                      |
+|                       | Skeleton                    | Loading placeholder primitive.                                     |
+|                       | Toast                       | Toast notification component.                                      |
+|                       | Tooltip                     | Tooltip overlay component.                                         |
+|                       | InfoCell                    | Display labeled information cells.                                 |
+|                       | LabelledValue               | Labeled value display component.                                   |
+|                       | PieChart                    | Pie chart visualization.                                           |
+| **Timeline**          | ActivityTimeline            | Visual timeline of account activity.                               |
+| **Error Handling**    | ErrorBoundary               | Catch rendering errors and show a fallback state.                  |
 
-// Display the connected wallet's public key (truncated)
-<WalletAddress />
+For upgrade notes and release history, see [CHANGELOG.md](CHANGELOG.md).
 
-// Show connection status
-<WalletStatus />
-```
+---
 
-### Account
+## New in This Release
 
-```tsx
-// Display all balances for the connected account
-<AccountBalance />
+### New Components (50+)
 
-// Filter by asset
-<AccountBalance assetCode="USDC" excludeZero />
+**Account & Balance Management**
 
-// Display a single asset balance inline
-<AssetBalance assetCode="XLM" />
-```
+- `AccountBalanceChart` - Visual balance history charts
+- `AccountSidebar` - Account info sidebar
+- `ActivityTimeline` - Transaction activity visualization
 
-### Transactions
+**Transaction Management**
 
-```tsx
-// Pre-wired payment form: amount + destination + submit
-<PaymentForm
-  onSuccess={(result) => console.log(result)}
-  onError={(err) => console.error(err)}
-/>
+- `TransactionHistoryTable` - Enhanced transaction history table
+- `TransactionStatusTracker` - Real-time transaction status
+- `TransactionFeeCalculator` - Fee calculation UI
+- `TransactionConfirmModal` - Confirmation dialogs
+- `BatchPaymentProcessor` - Batch payment interface
+- `MultiSigTransactionBuilder` - Multi-sig transaction UI
 
-// Display a single transaction's status by hash
-<TransactionStatus hash="abc123..." />
-```
+**DeFi Components**
 
-### Soroban
+- `SwapSimulator` - Swap preview and simulation
+- `SwapExecutionTracker` - Swap execution monitoring
+- `SwapRoute` - Route visualization
+- `PortfolioRebalancer` - Portfolio rebalancing (807+ lines)
+- `RebalancerHistory` - Rebalancing history view
+- `GasOptimizer` - Gas optimization UI (478+ lines)
+- `AllowanceManager` - Token allowance management (553+ lines)
 
-```tsx
-// Read a contract value and display it
-<ContractRead
-  contractId="C..."
-  method="get_balance"
-  args={[scAddress]}
-/>
+**Staking & Rewards**
 
-// Invoke a contract method with a connected wallet
-<ContractInvoke
-  contractId="C..."
-  method="transfer"
-  args={[scAddress, scAmount]}
-  onSuccess={(hash) => console.log(hash)}
-/>
-```
+- `StakingDashboard` - Staking overview (525+ lines)
+- `RewardsPanel` - Rewards display
+- `RewardHistory` - Historical rewards tracking
+- `DelegationRow` - Delegation management
+
+**Governance & Validation**
+
+- `GovernanceDashboard` - Governance interface
+- `ValidatorCard` - Validator information
+- `ValidatorSearch` - Validator discovery
+
+**NFT Management**
+
+- `NFTGallery` - NFT collection display (1,096+ lines)
+
+**Advanced Features**
+
+- `ContractInteractionBuilder` - Visual contract builder (448+ lines)
+- `ContractInteractionDebugger` - Contract call debugger (427+ lines)
+- `AssetFilter` - Asset filtering UI (794+ lines)
+- `WalletConnectModal` - Enhanced wallet modal (285+ lines)
+- `AllocationInput` - Allocation input component
+
+**New Screens**
+
+- `BudgetScreen` - Budget management
+- `ChartingScreen` - Analytics and charting
+- `RecoveryScreen` - Account recovery (306+ lines)
+- `YieldFarmingScreen` - Yield farming dashboard (284+ lines)
+- `NFTScreen` - NFT management
+
+**New UI Primitives**
+
+- `Toast` - Toast notifications
+- `Tooltip` - Tooltip component
+- `PieChart` - Pie chart visualization
+- `InfoCell` - Info display cells
+- `LabelledValue` - Labeled value display
+- `Separator` - Enhanced separator
+- `Badge` - Enhanced badge
+
+### Infrastructure & Testing
+
+- 50+ new test files with comprehensive coverage
+- Accessibility compliance checking (axe-critical)
+- Bundle size optimization (50 KB gzipped budget)
+- Enhanced Tailwind CSS theming
+- Toast notification context
+- Improved error boundaries
+
+### Performance
+
+- Optimized bundle size tracking
+- Public API type checking (`npm run test:exports`)
+- Enhanced component memo optimization
+- Streaming for large data sets
 
 ---
 
@@ -182,7 +288,67 @@ const { balances, loading, error } = useAccount();
 const { buildPayment, submit, status } = useTransaction();
 ```
 
-All hooks must be used inside a `SorokitProvider`.
+### `refreshAccount`
+
+Re-fetches the connected account data and balances. Useful when the user expects their balance to have changed (e.g. after receiving a payment) without disconnecting and reconnecting.
+
+```tsx
+const { refreshAccount, isLoadingAccount } = useSorokit();
+
+// Await the refresh to know when it has completed
+await refreshAccount();
+```
+
+`refreshAccount` returns a `Promise<void>` that resolves once both `getAccount` and `getBalances` have settled. `isLoadingAccount` is `true` while the request is in flight.
+
+All hooks must be used inside a `SorokitProvider`. When used outside one, `useSorokit` returns safe no-op defaults rather than throwing, so components render in a neutral disconnected state.
+
+---
+
+## Tailwind CSS Setup
+
+`sorokit-ui` is styled with [Tailwind CSS v4](https://tailwindcss.com). To use the library in your own Tailwind project:
+
+### 1. Import the CSS file
+
+```css
+@import "sorokit-ui/style.css";
+```
+
+This imports the pre-built component styles, design tokens (surfaces, text, borders, brand colors), and all custom utility classes (`bg-surface`, `text-ink`, `border-line`, etc.).
+
+### 2. Scan library files in your Tailwind config
+
+If you are using Tailwind's JIT engine (Tailwind v3 with `tailwind.config.js`) or the automatic content detection in Tailwind v4, you may need to configure `@source` directives or the `content` glob to pick up class names used inside the library:
+
+```css
+/* Tailwind v4 — add to your main CSS file */
+@import "tailwindcss";
+@source "../node_modules/sorokit-ui";
+```
+
+For Tailwind v3, add to `tailwind.config.js`:
+
+```js
+module.exports = {
+  content: [
+    "./src/**/*.{ts,tsx}",
+    "./node_modules/sorokit-ui/dist/**/*.{js,mjs}",
+  ],
+};
+```
+
+### 3. Verify theme tokens
+
+The library exposes CSS custom properties on `:root` (see [Theming](#theming) below). Override any token to customise the appearance:
+
+```css
+:root {
+  --color-brand: #replac3;
+  --color-surface: #ffffff;
+  --color-ink: #1a1a1a;
+}
+```
 
 ---
 
@@ -220,14 +386,14 @@ To apply a consistent base style across all components, pass a `classNames` map 
 
 ### Token categories
 
-| Category | Examples | Utility classes |
-|----------|----------|-----------------|
-| Surfaces | `--color-base`, `--color-surface`, `--color-surface-2` | `bg-base`, `bg-surface`, `bg-surface-2` |
-| Text | `--color-ink`, `--color-ink-2`, `--color-ink-3` | `text-ink`, `text-ink-2`, `text-ink-3` |
-| Borders | `--color-line`, `--color-line-2` | `border-line`, `border-line-2` |
-| Brand | `--color-brand`, `--color-brand-hover` | `bg-brand`, `text-brand` |
-| State | `--color-success-bg`, `--color-error-bg` | `bg-success-dim`, `bg-error-dim` |
-| QR canvas | `--color-qr-canvas-bg`, `--color-qr-canvas-fg` | — |
+| Category  | Examples                                               | Utility classes                         |
+| --------- | ------------------------------------------------------ | --------------------------------------- |
+| Surfaces  | `--color-base`, `--color-surface`, `--color-surface-2` | `bg-base`, `bg-surface`, `bg-surface-2` |
+| Text      | `--color-ink`, `--color-ink-2`, `--color-ink-3`        | `text-ink`, `text-ink-2`, `text-ink-3`  |
+| Borders   | `--color-line`, `--color-line-2`                       | `border-line`, `border-line-2`          |
+| Brand     | `--color-brand`, `--color-brand-hover`                 | `bg-brand`, `text-brand`                |
+| State     | `--color-success-bg`, `--color-error-bg`               | `bg-success-dim`, `bg-error-dim`        |
+| QR canvas | `--color-qr-canvas-bg`, `--color-qr-canvas-fg`         | —                                       |
 
 ### Light mode adaptation
 

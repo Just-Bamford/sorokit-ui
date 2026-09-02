@@ -1,11 +1,18 @@
-import { render, screen } from "@testing-library/react";
+import { act,render, screen } from "@testing-library/react";
 import { fireEvent } from "@testing-library/react";
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { NetworkScreen } from "./NetworkScreen";
+import { beforeEach,describe, expect, it, vi } from "vitest";
+
 import { useSorokit } from "@/context/useSorokit";
+
+import { NetworkScreen } from "./NetworkScreen";
 
 vi.mock("@/context/useSorokit", () => ({
   useSorokit: vi.fn(),
+}));
+
+vi.mock("@hugeicons/react", () => ({
+  HugeiconsIcon: "div",
+  Loading01Icon: "div",
 }));
 
 const TESTNET_NETWORK = {
@@ -25,6 +32,9 @@ describe("NetworkScreen", () => {
       network: TESTNET_NETWORK,
       switchNetwork,
     } as unknown as ReturnType<typeof useSorokit>);
+
+    // jsdom does not implement scrollIntoView
+    Element.prototype.scrollIntoView = vi.fn();
   });
 
   it("renders the active network info section", () => {
@@ -80,5 +90,43 @@ describe("NetworkScreen", () => {
 
     render(<NetworkScreen />);
     expect(screen.queryByText("Active Network")).not.toBeInTheDocument();
+  });
+
+  it("applies focus-visible ring classes on network card buttons", () => {
+    render(<NetworkScreen />);
+    const buttons = screen.getAllByRole("button");
+    // Card buttons have "rounded-xl" (copy-buttons in InfoCell have "rounded-md")
+    const cardButtons = buttons.filter((b) =>
+      b.className.includes("rounded-xl"),
+    );
+    expect(cardButtons).toHaveLength(4);
+    cardButtons.forEach((btn) => {
+      expect(btn.className).toContain("focus-visible:outline-none");
+      expect(btn.className).toContain("focus-visible:ring-2");
+      expect(btn.className).toContain("focus-visible:ring-brand");
+    });
+  });
+
+  it("shows a spinner on the selected card while switching networks", async () => {
+    let resolveSwitch: (v: { data: { name: string }; error: null }) => void;
+    switchNetwork.mockReturnValue(
+      new Promise((resolve) => {
+        resolveSwitch = resolve;
+      }),
+    );
+
+    render(<NetworkScreen />);
+
+    // Click the Mainnet card (not active, so it triggers switch)
+    fireEvent.click(screen.getByRole("button", { name: /mainnet/i }));
+
+    // The spinner icon should appear on the mainnet card
+    const mainnetCard = screen.getByRole("button", { name: /mainnet/i });
+    expect(mainnetCard.querySelector(".animate-spin")).toBeInTheDocument();
+
+    // Resolve the switch
+    await act(async () => {
+      resolveSwitch!({ data: { name: "mainnet" }, error: null });
+    });
   });
 });
