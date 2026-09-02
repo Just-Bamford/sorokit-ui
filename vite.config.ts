@@ -2,39 +2,53 @@ import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import path from "path";
 import { defineConfig } from "vite";
+import dts from "vite-plugin-dts";
 
 export default defineConfig({
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  plugins: [react(), tailwindcss()] as any[],
+  plugins: [
+    react(),
+    tailwindcss(),
+    dts({
+      tsconfigPath: path.resolve(__dirname, "tsconfig.lib.json"),
+    }),
+  ],
   build: {
     lib: {
-      entry: path.resolve(__dirname, 'src/components/index.ts'),
-      name: 'SorokitUI',
-      fileName: (format) => `sorokit-ui.${format}.js`,
-      formats: ['es', 'cjs'],
+      entry: path.resolve(__dirname, "src/index.ts"),
+      name: "SorokitUI",
+      fileName: (format) => `index.${format === "es" ? "js" : "cjs"}`,
+      formats: ["es", "cjs"],
     },
     rollupOptions: {
-      // Externalize dependencies that should not be bundled
-      external: ['react', 'react-dom', 'react/jsx-runtime'],
+      external: (id) =>
+        !id.startsWith(".") &&
+        !id.startsWith("@/") &&
+        !id.startsWith("\0") &&
+        !path.isAbsolute(id),
       output: {
-        // Provide global variables for UMD/IIFE builds
-        globals: {
-          react: 'React',
-          'react-dom': 'ReactDOM',
+        assetFileNames: (assetInfo) => {
+          if (assetInfo.name?.endsWith(".css")) {
+            return "style.css";
+          }
+          return "[name][extname]";
         },
-        // Output ESM and CJS in separate directories
-        dir: 'dist',
+        globals: {
+          react: "React",
+          "react-dom": "ReactDOM",
+        },
       },
     },
     minify: false,
     sourcemap: true,
+    outDir: "dist",
+    emptyOutDir: true,
   },
   optimizeDeps: {
     include: ["sorokit-core", "@creit.tech/stellar-wallets-kit"],
   },
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, './src'),
+      "@": path.resolve(__dirname, "./src"),
     },
   },
 });
