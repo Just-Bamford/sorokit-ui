@@ -3,9 +3,9 @@
   "version": "1.0.0",
   "type": "module",
   "description": "React components for Stellar/Soroban development",
-  "main": "dist/sorokit-ui.cjs",
-  "module": "dist/sorokit-ui.es.js",
-  "types": "dist/components/index.d.ts",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "files": [
     "dist",
     "README.md",
@@ -25,10 +25,11 @@
   "homepage": "https://github.com/Just-Bamford/sorokit-ui#readme",
   "exports": {
     ".": {
-      "types": "./dist/components/index.d.ts",
-      "import": "./dist/sorokit-ui.es.js",
-      "require": "./dist/sorokit-ui.cjs"
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
     },
+    "./style.css": "./dist/style.css",
     "./styles": "./dist/style.css"
   },
   "scripts": {
@@ -102,9 +103,8 @@
   "size-limit": [
     {
       "name": "ES module (gzip)",
-      "path": "dist/sorokit-ui.es.js",
+      "path": "dist/index.js",
       "limit": "150 kB",
-      "gzip": true,
       "ignore": [
         "react",
         "react-dom",
@@ -118,9 +118,8 @@
     },
     {
       "name": "CommonJS (gzip)",
-      "path": "dist/sorokit-ui.cjs",
+      "path": "dist/index.cjs",
       "limit": "150 kB",
-      "gzip": true,
       "ignore": [
         "react",
         "react-dom",
