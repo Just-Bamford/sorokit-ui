@@ -5,13 +5,14 @@ import { getClient } from "@/lib/client";
 import { renderWithProvider } from "@/__tests__/utils";
 
 const TestComponent = () => {
-  const { address, account, balances, connectWallet, disconnectWallet, switchNetwork } = useSorokit();
+  const { address, account, balances, error, connectWallet, disconnectWallet, switchNetwork } = useSorokit();
   
   return (
     <div>
       <div data-testid="address">{address || "none"}</div>
       <div data-testid="account">{account ? account.sequence : "none"}</div>
       <div data-testid="balances">{balances.length}</div>
+      <div data-testid="error">{error || "none"}</div>
       <button onClick={() => connectWallet()}>Connect</button>
       <button onClick={() => disconnectWallet()}>Disconnect</button>
       <button onClick={() => switchNetwork("testnet")}>Switch</button>
@@ -39,10 +40,12 @@ describe("SorokitProvider", () => {
     } as unknown as ReturnType<typeof getClient>;
   });
 
-  it("disconnectWallet clears address, account, and balances", async () => {
+  it("disconnectWallet clears address, account, balances, and error", async () => {
+    mockClient.account.getAccount = vi.fn().mockResolvedValue({ data: null, error: "Account error" });
+    mockClient.account.getBalances = vi.fn().mockResolvedValue({ data: null, error: "Balances error" });
+
     renderWithProvider(<TestComponent />, { client: mockClient });
 
-    // Initial load will hit getNetwork
     const connectBtn = screen.getByText("Connect");
     const disconnectBtn = screen.getByText("Disconnect");
 
@@ -50,11 +53,8 @@ describe("SorokitProvider", () => {
       fireEvent.click(connectBtn);
     });
 
-    expect(screen.getByTestId("address")).toHaveTextContent("GABC");
-    
     await waitFor(() => {
-      expect(screen.getByTestId("account")).toHaveTextContent("100");
-      expect(screen.getByTestId("balances")).toHaveTextContent("1");
+      expect(screen.getByTestId("error")).toHaveTextContent("Account error; Balances error");
     });
 
     await act(async () => {
@@ -64,6 +64,84 @@ describe("SorokitProvider", () => {
     expect(screen.getByTestId("address")).toHaveTextContent("none");
     expect(screen.getByTestId("account")).toHaveTextContent("none");
     expect(screen.getByTestId("balances")).toHaveTextContent("0");
+    expect(screen.getByTestId("error")).toHaveTextContent("none");
+  });
+
+  it("combines error strings when both getAccount and getBalances fail", async () => {
+    mockClient.account.getAccount = vi.fn().mockResolvedValue({ data: null, error: "Account failed" });
+    mockClient.account.getBalances = vi.fn().mockResolvedValue({ data: null, error: "Balances failed" });
+
+    renderWithProvider(<TestComponent />, { client: mockClient });
+
+    await act(async () => {
+      fireEvent.click(screen.getByText("Connect"));
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId("error")).toHaveTextContent("Account failed; Balances failed");
+    });
+  });
+
+  it("shows single error when only getAccount fails", async () => {
+    mockClient.account.getAccount = vi.fn().mockResolvedValue({ data: null, error: "Account not found" });
+    mockClient.account.getBalances = vi.fn().mockResolvedValue({ data: [{ asset: "XLM", balance: "10" }], error: null });
+
+    renderWithProvider(<TestComponent />, { client: mockClient });
+
+    await act(async () => {
+      fireEvent.click(screen.getByText("Connect"));
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId("error")).toHaveTextContent("Account not found");
+      expect(screen.getByTestId("balances")).toHaveTextContent("1");
+    });
+  });
+
+  it("shows single error when only getBalances fails", async () => {
+    mockClient.account.getAccount = vi.fn().mockResolvedValue({ data: { sequence: "100" }, error: null });
+    mockClient.account.getBalances = vi.fn().mockResolvedValue({ data: null, error: "Failed to fetch balances" });
+
+    renderWithProvider(<TestComponent />, { client: mockClient });
+
+    await act(async () => {
+      fireEvent.click(screen.getByText("Connect"));
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId("error")).toHaveTextContent("Failed to fetch balances");
+      expect(screen.getByTestId("account")).toHaveTextContent("100");
+    });
+  });
+
+  it("clears error from previous session on reconnect", async () => {
+    mockClient.account.getAccount = vi.fn().mockResolvedValueOnce({ data: null, error: "Old error" });
+    mockClient.account.getBalances = vi.fn().mockResolvedValueOnce({ data: [], error: null });
+
+    renderWithProvider(<TestComponent />, { client: mockClient });
+
+    await act(async () => {
+      fireEvent.click(screen.getByText("Connect"));
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId("error")).toHaveTextContent("Old error");
+    });
+
+    // Next connect with different address succeeds
+    mockClient.wallet.connect = vi.fn().mockResolvedValue({ data: { address: "GDEF" }, error: null });
+    mockClient.account.getAccount = vi.fn().mockResolvedValue({ data: { sequence: "200" }, error: null });
+    mockClient.account.getBalances = vi.fn().mockResolvedValue({ data: [{ asset: "XLM", balance: "50" }], error: null });
+
+    await act(async () => {
+      fireEvent.click(screen.getByText("Connect"));
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId("address")).toHaveTextContent("GDEF");
+      expect(screen.getByTestId("error")).toHaveTextContent("none");
+      expect(screen.getByTestId("account")).toHaveTextContent("200");
+    });
   });
 
   it("connectWallet populates address on success", async () => {

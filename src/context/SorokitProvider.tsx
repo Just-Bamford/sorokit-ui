@@ -34,7 +34,12 @@ export function SorokitProvider({ client, children }: SorokitProviderProps) {
 
   // Load account when address changes
   useEffect(() => {
-    if (!address) return;
+    setError(null);
+    if (!address) {
+      setAccount(null);
+      setBalances([]);
+      return;
+    }
 
     let active = true;
     const timerId = window.setTimeout(() => {
@@ -46,9 +51,11 @@ export function SorokitProvider({ client, children }: SorokitProviderProps) {
         .then(([accountRes, balancesRes]) => {
           if (!active) return;
           if (accountRes.data) setAccount(accountRes.data);
-          if (accountRes.error) setError(accountRes.error);
           if (balancesRes.data) setBalances(balancesRes.data);
-          if (balancesRes.error) setError(balancesRes.error);
+          const combined = [accountRes.error, balancesRes.error]
+            .filter(Boolean)
+            .join("; ");
+          if (combined) setError(combined);
         })
         .finally(() => {
           if (active) setIsLoadingAccount(false);
@@ -81,6 +88,7 @@ export function SorokitProvider({ client, children }: SorokitProviderProps) {
     setAddress(null);
     setAccount(null);
     setBalances([]);
+    setError(null);
   }, [client]);
 
   const switchNetwork = useCallback(
