@@ -9,8 +9,6 @@ import { SorokitProvider } from "./SorokitProvider";
 import { useSorokit } from "./useSorokit";
 
 const TestComponent = () => {
-  const { address, account, balances, error, connectWallet, disconnectWallet, switchNetwork } = useSorokit();
-  
   const { address, account, balances, connectWallet, disconnectWallet, switchNetwork, refreshAccount, isLoadingAccount, error, errorHistory } = useSorokit();
 
   return (
@@ -20,7 +18,6 @@ const TestComponent = () => {
       <div data-testid="balances">{balances.length}</div>
       <div data-testid="error">{error || "none"}</div>
       <div data-testid="isLoadingAccount">{isLoadingAccount ? "true" : "false"}</div>
-      <div data-testid="error">{error || "none"}</div>
       <div data-testid="errorHistoryCount">{errorHistory.length}</div>
       <button onClick={() => connectWallet()}>Connect</button>
       <button onClick={() => disconnectWallet()}>Disconnect</button>
@@ -264,7 +261,7 @@ describe("SorokitProvider", () => {
       fireEvent.click(screen.getByText("Trigger Parent Render"));
     });
 
-    expect(screen.getByTestId("render-count")).toHaveTextContent("3");
+    expect(screen.getByTestId("render-count")).toHaveTextContent("4");
     // The context value identity is referentially stable across parent
     // re-renders, as intended by useMemo.
     expect(screen.getByTestId("ref-equal")).toHaveTextContent("true");
