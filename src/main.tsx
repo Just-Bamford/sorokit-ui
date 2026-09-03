@@ -3,9 +3,9 @@ import './index.css'
 import React, { useCallback,useState } from 'react'
 import ReactDOM from 'react-dom/client'
 
-import App from './App.tsx'
+import App from './App'
 import { ErrorBoundary } from './components/ErrorBoundary'
-import type { SorokitClient } from './lib/client.ts'
+import type { SorokitClient } from './lib/client'
 import { createMockClient } from './lib/mock-client'
 
 const createClient = (): SorokitClient => {
